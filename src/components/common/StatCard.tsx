@@ -1,0 +1,78 @@
+import React from 'react';
+import { LucideIcon } from 'lucide-react';
+
+interface StatCardProps {
+  title: string;
+  value: string | number;
+  subtitle?: string;
+  icon: LucideIcon;
+  iconColor?: string;
+  iconBg?: string;
+  badge?: {
+    text: string;
+    variant: 'danger' | 'warning' | 'success' | 'neutral';
+  };
+  onClick?: () => void;
+}
+
+export const StatCard: React.FC<StatCardProps> = ({
+  title,
+  value,
+  subtitle,
+  icon: Icon,
+  iconColor = 'text-blue-600',
+  iconBg = 'bg-blue-50',
+  badge,
+  onClick,
+}) => {
+  const getBadgeClasses = (variant: string) => {
+    switch (variant) {
+      case 'danger':
+        return 'bg-red-50 text-red-700 border-red-200';
+      case 'warning':
+        return 'bg-amber-50 text-amber-700 border-amber-200';
+      case 'success':
+        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+      default:
+        return 'bg-slate-50 text-slate-700 border-slate-200';
+    }
+  };
+
+  return (
+    <div
+      onClick={onClick}
+      className={`bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-all duration-200 ${
+        onClick ? 'cursor-pointer hover:border-slate-300' : ''
+      }`}
+    >
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            {title}
+          </p>
+          <div className="mt-2 flex items-baseline gap-2">
+            <h3 className="text-2xl font-extrabold text-slate-900 tracking-tight font-mono">
+              {value}
+            </h3>
+            {badge && (
+              <span
+                className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${getBadgeClasses(
+                  badge.variant
+                )}`}
+              >
+                {badge.text}
+              </span>
+            )}
+          </div>
+          {subtitle && (
+            <p className="mt-1 text-xs text-slate-500 font-medium">{subtitle}</p>
+          )}
+        </div>
+
+        <div className={`p-3 rounded-lg ${iconBg} ${iconColor}`}>
+          <Icon className="w-5 h-5" />
+        </div>
+      </div>
+    </div>
+  );
+};

@@ -1,0 +1,48 @@
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AppProvider } from './context/AppContext';
+import { PredictionProvider } from './context/PredictionContext';
+import { AppLayout } from './components/layout/AppLayout';
+
+// Pages
+import { DashboardPage } from './pages/Dashboard';
+import { RiskMapPage } from './pages/RiskMap';
+import { PredictionPage } from './pages/Prediction';
+import { AiLandScanPage } from './pages/AiLandScan';
+import { RainfallPage } from './pages/Rainfall';
+import { ImpactAnalysisPage } from './pages/ImpactAnalysis';
+import { EvacuationPage } from './pages/Evacuation';
+import { AlertsPage } from './pages/Alerts';
+import { HistoricalPage } from './pages/Historical';
+import { AnalyticsPage } from './pages/Analytics';
+import { AdminPage } from './pages/Admin';
+
+export const App: React.FC = () => {
+  return (
+    <AppProvider>
+      <PredictionProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<AppLayout />}>
+              <Route index element={<DashboardPage />} />
+              <Route path="risk-map" element={<RiskMapPage />} />
+              <Route path="prediction" element={<PredictionPage />} />
+              <Route path="ai-land-scan" element={<AiLandScanPage />} />
+              <Route path="land-scan" element={<Navigate to="/ai-land-scan" replace />} />
+              <Route path="rainfall" element={<RainfallPage />} />
+              <Route path="impact-analysis" element={<ImpactAnalysisPage />} />
+              <Route path="evacuation" element={<EvacuationPage />} />
+              <Route path="alerts" element={<AlertsPage />} />
+              <Route path="historical" element={<HistoricalPage />} />
+              <Route path="analytics" element={<AnalyticsPage />} />
+              <Route path="admin" element={<AdminPage />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Route>
+          </Routes>
+        </BrowserRouter>
+      </PredictionProvider>
+    </AppProvider>
+  );
+};
+
+export default App;

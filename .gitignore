@@ -1,0 +1,9 @@
+# Environment and keys
+.env
+.env.*
+*.env
+__pycache__/
+*.py[cod]
+*.class
+dist/
+node_modules/

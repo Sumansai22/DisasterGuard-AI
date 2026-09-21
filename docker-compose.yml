@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:16
+    container_name: landslideguard-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: landslide_guard
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - landslideguard_pgdata:/var/lib/postgresql/data
+
+volumes:
+  landslideguard_pgdata:
