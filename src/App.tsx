@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider } from './context/AppContext';
 import { PredictionProvider } from './context/PredictionContext';
+import { LanguageProvider } from './i18n';
 import { AppLayout } from './components/layout/AppLayout';
 
 // Pages
@@ -19,29 +20,33 @@ import { AdminPage } from './pages/Admin';
 
 export const App: React.FC = () => {
   return (
-    <AppProvider>
-      <PredictionProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<AppLayout />}>
-              <Route index element={<DashboardPage />} />
-              <Route path="risk-map" element={<RiskMapPage />} />
-              <Route path="prediction" element={<PredictionPage />} />
-              <Route path="ai-land-scan" element={<AiLandScanPage />} />
-              <Route path="land-scan" element={<Navigate to="/ai-land-scan" replace />} />
-              <Route path="rainfall" element={<RainfallPage />} />
-              <Route path="impact-analysis" element={<ImpactAnalysisPage />} />
-              <Route path="evacuation" element={<EvacuationPage />} />
-              <Route path="alerts" element={<AlertsPage />} />
-              <Route path="historical" element={<HistoricalPage />} />
-              <Route path="analytics" element={<AnalyticsPage />} />
-              <Route path="admin" element={<AdminPage />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Route>
-          </Routes>
-        </BrowserRouter>
-      </PredictionProvider>
-    </AppProvider>
+    <LanguageProvider>
+      <AppProvider>
+        <PredictionProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<AppLayout />}>
+                <Route index element={<DashboardPage />} />
+                <Route path="risk-map" element={<RiskMapPage />} />
+                <Route path="prediction" element={<PredictionPage />} />
+                <Route path="drone-rescue" element={<PredictionPage />} />
+                <Route path="drone" element={<Navigate to="/drone-rescue" replace />} />
+                <Route path="ai-land-scan" element={<AiLandScanPage />} />
+                <Route path="land-scan" element={<Navigate to="/ai-land-scan" replace />} />
+                <Route path="rainfall" element={<RainfallPage />} />
+                <Route path="impact-analysis" element={<ImpactAnalysisPage />} />
+                <Route path="evacuation" element={<EvacuationPage />} />
+                <Route path="alerts" element={<AlertsPage />} />
+                <Route path="historical" element={<HistoricalPage />} />
+                <Route path="analytics" element={<AnalyticsPage />} />
+                <Route path="admin" element={<AdminPage />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Route>
+            </Routes>
+          </BrowserRouter>
+        </PredictionProvider>
+      </AppProvider>
+    </LanguageProvider>
   );
 };
 

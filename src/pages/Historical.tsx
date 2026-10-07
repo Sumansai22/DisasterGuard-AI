@@ -232,6 +232,94 @@ export const HistoricalPage: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* Central Emergency Response Performance & Audit Trail */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left: Response Time Lifecycle Milestones (5 cols) */}
+        <div className="lg:col-span-5 bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
+          <div className="pb-3 border-b border-slate-100">
+            <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <span>⏱️ Emergency Response Time Metrics</span>
+            </h4>
+            <p className="text-xs text-slate-500">NDRF & SDRF deployment lifecycle intervals</p>
+          </div>
+
+          <div className="space-y-3 font-mono text-xs">
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+              <span className="text-slate-600">Detection → Verification:</span>
+              <strong className="text-slate-900 font-bold">52 sec</strong>
+            </div>
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+              <span className="text-slate-600">Verification → Dispatch:</span>
+              <strong className="text-slate-900 font-bold">18 sec</strong>
+            </div>
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+              <span className="text-slate-600">Dispatch → On-Scene Arrival:</span>
+              <strong className="text-slate-900 font-bold">8.5 min</strong>
+            </div>
+            <div className="p-3.5 rounded-xl bg-emerald-950/20 border border-emerald-300 flex items-center justify-between">
+              <span className="text-emerald-900 font-bold">TOTAL AVERAGE RESPONSE:</span>
+              <strong className="text-emerald-700 text-sm font-extrabold">22 min</strong>
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Operational Audit Trail (7 cols) */}
+        <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div>
+              <h4 className="text-sm font-bold text-slate-900">
+                Central Disaster Incident Audit Trail
+              </h4>
+              <p className="text-xs text-slate-500">Immutable chronological log of human and AI actions</p>
+            </div>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">
+              Active Logger
+            </span>
+          </div>
+
+          <div className="space-y-2.5 max-h-[260px] overflow-y-auto pr-1">
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs flex items-start justify-between gap-3">
+              <div>
+                <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                  <span className="text-emerald-600">●</span>
+                  <span>INC-DRONE-8823 Verified by Supervisor</span>
+                </div>
+                <p className="text-slate-500 text-[11px] mt-0.5">
+                  Human operator verified high-distress stranded individual on railway footing.
+                </p>
+              </div>
+              <span className="font-mono text-[10px] text-slate-400 shrink-0">21:43:10Z</span>
+            </div>
+
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs flex items-start justify-between gap-3">
+              <div>
+                <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                  <span className="text-orange-600">●</span>
+                  <span>Drone-01 Detection: Person #12 Logged</span>
+                </div>
+                <p className="text-slate-500 text-[11px] mt-0.5">
+                  Inundation zone exposure detected with 94% confidence.
+                </p>
+              </div>
+              <span className="font-mono text-[10px] text-slate-400 shrink-0">21:42:10Z</span>
+            </div>
+
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs flex items-start justify-between gap-3">
+              <div>
+                <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                  <span className="text-blue-600">●</span>
+                  <span>Early Warning Broadcast: Flash Flood Advisory</span>
+                </div>
+                <p className="text-slate-500 text-[11px] mt-0.5">
+                  Civil defense alert sent to West Godavari District EOC.
+                </p>
+              </div>
+              <span className="font-mono text-[10px] text-slate-400 shrink-0">21:35:00Z</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

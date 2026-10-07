@@ -1,12 +1,20 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { usePrediction } from '../context/PredictionContext';
 import { useAlerts } from '../hooks/useAlerts';
+import { useTranslation } from '../i18n';
 import { StatCard } from '../components/common/StatCard';
 import { RiskBadge } from '../components/common/RiskBadge';
 import { RiskFactorBar } from '../components/common/RiskFactorBar';
 import { RiskMap } from '../components/map/RiskMap';
 import { SearchedLocationBanner } from '../components/common/SearchedLocationBanner';
+import { MultiHazardRiskMatrix } from '../components/dashboard/MultiHazardRiskMatrix';
+import { CascadingHazardFlow } from '../components/dashboard/CascadingHazardFlow';
+import { DataProvenanceBadge } from '../components/common/DataProvenanceBadge';
+import { ScenarioSimulatorModal } from '../components/common/ScenarioSimulatorModal';
+import { multiHazardService } from '../services/multiHazardService';
+import { disasterManagementService, ScenarioSimulationResult } from '../services/disasterManagementService';
+import { MultiHazardAssessment, HazardType } from '../types/multiHazard';
 import {
   ShieldAlert,
   BellRing,
@@ -25,26 +33,41 @@ import {
   Clock,
   Compass,
   AlertCircle,
+  Globe,
+  Waves,
+  Zap,
+  Play,
+  Activity,
+  HeartHandshake,
+  Ambulance,
+  ShieldCheck,
+  LifeBuoy,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { calculateInputConditionFactors } from '../utils/riskLevel';
-import { encodeSoilType } from '../utils/riskLevel';
+import { calculateInputConditionFactors, encodeSoilType } from '../utils/riskLevel';
 import { landScanService } from '../services/landScanService';
 
 export const DashboardPage: React.FC = () => {
   const {
+    activeLocation,
     selectedStation,
-    setSelectedStation,
+    selectTelemetryStation,
+    selectedHazardType,
+    setSelectedHazardType,
     searchedLocation,
     clearSearchedLocation,
+    getNearestTelemetryStation,
   } = useApp();
-  const { latestResult, formValues } = usePrediction();
+  const { latestResult } = usePrediction();
   const { alerts } = useAlerts();
+  const { t, formatNumber } = useTranslation();
   const navigate = useNavigate();
-  const [landScanCount, setLandScanCount] = React.useState<number>(0);
-  const [latestScanDetected, setLatestScanDetected] = React.useState<boolean>(false);
+  const [landScanCount, setLandScanCount] = useState<number>(0);
+  const [latestScanDetected, setLatestScanDetected] = useState<boolean>(false);
+  const [multiHazardData, setMultiHazardData] = useState<MultiHazardAssessment | null>(null);
+  const [isLoadingHazard, setIsLoadingHazard] = useState<boolean>(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     landScanService.getScanHistory(5).then((res) => {
       setLandScanCount(res.total || 0);
       if (res.scans && res.scans.length > 0) {
@@ -53,55 +76,228 @@ export const DashboardPage: React.FC = () => {
     }).catch(() => {});
   }, []);
 
-  // Active risk factors from current station or latest prediction
-  const activeInput = {
-    Rainfall_mm: selectedStation.parameters.rainfall_mm,
-    Slope_Angle: selectedStation.parameters.slope_angle,
-    Soil_Saturation: selectedStation.parameters.soil_saturation,
-    Vegetation_Cover: selectedStation.parameters.vegetation_cover,
-    Earthquake_Activity: selectedStation.parameters.earthquake_activity,
-    Proximity_to_Water: selectedStation.parameters.proximity_to_water,
-    ...encodeSoilType(selectedStation.parameters.soil_type),
-  };
+  // Fetch Multi-Hazard Assessment whenever activeLocation or selectedStation changes
+  useEffect(() => {
+    let mounted = true;
+    setIsLoadingHazard(true);
 
-  const factors = calculateInputConditionFactors(activeInput);
+    const params = {
+      lat: activeLocation.lat,
+      lng: activeLocation.lng,
+      locationName: activeLocation.name,
+      rainfall_mm: selectedStation?.parameters.rainfall_mm ?? 55.0,
+      slope_angle: selectedStation?.parameters.slope_angle ?? 28.0,
+      soil_saturation: selectedStation?.parameters.soil_saturation ?? 65.0,
+      vegetation_cover: selectedStation?.parameters.vegetation_cover ?? 50.0,
+      earthquake_activity: selectedStation?.parameters.earthquake_activity ?? 0.15,
+      proximity_to_water: selectedStation?.parameters.proximity_to_water ?? 300.0,
+      is_monitored: Boolean(activeLocation.isMonitored && selectedStation),
+    };
+
+    multiHazardService
+      .getAssessment(params)
+      .then((res) => {
+        if (mounted) setMultiHazardData(res);
+      })
+      .catch((err) => {
+        console.error('Multi-Hazard Assessment fetch failed:', err);
+      })
+      .finally(() => {
+        if (mounted) setIsLoadingHazard(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [activeLocation, selectedStation]);
+
+  const isMonitored = Boolean(activeLocation.isMonitored && selectedStation);
+  const nearestStn = !isMonitored
+    ? getNearestTelemetryStation(activeLocation.lat, activeLocation.lng)
+    : null;
+
+  // Active risk factors from current station if available
+  const activeInput = selectedStation
+    ? {
+        Rainfall_mm: selectedStation.parameters.rainfall_mm,
+        Slope_Angle: selectedStation.parameters.slope_angle,
+        Soil_Saturation: selectedStation.parameters.soil_saturation,
+        Vegetation_Cover: selectedStation.parameters.vegetation_cover,
+        Earthquake_Activity: selectedStation.parameters.earthquake_activity,
+        Proximity_to_Water: selectedStation.parameters.proximity_to_water,
+        ...encodeSoilType(selectedStation.parameters.soil_type),
+      }
+    : null;
+
+  const factors = activeInput ? calculateInputConditionFactors(activeInput) : null;
   const activeAlertsCount = alerts.filter((a) => a.status === 'ACTIVE').length;
 
-  const isNonMonitoredSearched = Boolean(searchedLocation && !searchedLocation.isMonitored);
+  const [isSimulatorOpen, setIsSimulatorOpen] = useState(false);
+  const [activeScenarioResult, setActiveScenarioResult] = useState<ScenarioSimulationResult | null>(null);
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-slate-200">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-orange-100 text-orange-800 border border-orange-200">
-              SIH26001
+      {/* Page Header with exact Product Identity */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4 pb-2 border-b border-slate-200">
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 mb-1 flex-wrap">
+            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-orange-100 text-orange-800 border border-orange-200 shrink-0">
+              {t('app.ndmaDss')}
             </span>
-            <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 tracking-tight">
-              AI Early-Warning Landslide Risk Monitoring
+            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-100 text-blue-800 border border-blue-200 shrink-0">
+              {t('app.multiHazard')}
+            </span>
+            <h1 className="text-lg sm:text-xl md:text-2xl font-extrabold text-slate-900 tracking-tight break-words">
+              {t('app.title')} — {t('app.subtitle')}
             </h1>
           </div>
           <p className="text-xs md:text-sm text-slate-500 font-medium">
-            Real-time environmental intelligence, multispectral U-Net terrain segmentation, and AI-powered landslide risk assessment
+            {t('app.headerSubtitle')}
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap">
-          <Link
-            to="/ai-land-scan"
-            className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center gap-2 border border-slate-700 shadow-sm transition-all active:scale-[0.98]"
+        {/* Action Buttons Responsive Grid */}
+        <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-2.5 w-full lg:w-auto shrink-0">
+          <button
+            onClick={() => setIsSimulatorOpen(true)}
+            className="px-3 py-2 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-[0.98] cursor-pointer"
           >
-            <ScanLine className="w-4 h-4 text-orange-400" />
-            <span>AI Land Scan</span>
+            <Activity className="w-3.5 h-3.5 animate-pulse shrink-0" />
+            <span className="truncate">⚡ {t('dashboard.scenarioSimulator')}</span>
+          </button>
+          <Link
+            to="/drone-rescue"
+            className="px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border border-slate-700 shadow-sm transition-all active:scale-[0.98]"
+          >
+            <span className="text-orange-400">🚁</span>
+            <span className="truncate">{t('nav.droneRescue')}</span>
+          </Link>
+          <Link
+            to="/evacuation"
+            className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-[0.98]"
+          >
+            <Navigation className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">{t('nav.evacuation')}</span>
           </Link>
           <Link
             to="/prediction"
-            className="px-4 py-2 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm transition-all active:scale-[0.98]"
+            className="px-3 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-[0.98]"
           >
-            <BrainCircuit className="w-4 h-4" />
-            <span>Run AI Prediction</span>
+            <BrainCircuit className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">AI Predictor</span>
           </Link>
+        </div>
+      </div>
+
+      {/* Scenario Simulator Modal */}
+      <ScenarioSimulatorModal
+        isOpen={isSimulatorOpen}
+        onClose={() => setIsSimulatorOpen(false)}
+        activeLocationName={activeLocation.name}
+        onScenarioActivated={(sc) => {
+          setActiveScenarioResult(sc);
+          setIsSimulatorOpen(false);
+        }}
+      />
+
+      {/* Integrated Command Center Operations & Impact Bar */}
+      <div className="bg-slate-950 text-white rounded-2xl p-4 sm:p-5 border border-slate-800 shadow-xl space-y-4 w-full min-w-0 box-border">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-slate-800/80">
+          <div className="flex items-center gap-2.5 flex-wrap min-w-0">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+            <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300 truncate">
+              {t('app.disasterCommandCenter')} | {activeLocation.name}
+            </span>
+            <DataProvenanceBadge
+              status={isMonitored ? 'SENSOR' : 'LIVE'}
+              source={isMonitored ? 'Telemetry Station' : 'Open-Meteo & IMD'}
+            />
+          </div>
+          <div className="flex items-center gap-2 sm:gap-4 text-xs font-mono shrink-0">
+            <span className="text-slate-400 text-[11px] sm:text-xs">
+              {t('app.environmentalData')}:{' '}
+              <strong className="text-emerald-400 font-bold">{t('app.available')}</strong>
+            </span>
+            <span className="text-slate-600">|</span>
+            <span className="text-slate-400 text-[11px] sm:text-xs">
+              {t('app.localSensor')}:{' '}
+              <strong className={isMonitored ? 'text-emerald-400 font-bold' : 'text-amber-400 font-bold'}>
+                {isMonitored ? t('app.online') : t('app.remoteMode')}
+              </strong>
+            </span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5">
+          {/* Active Hazards */}
+          <div className="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between min-w-0">
+            <span className="text-[11px] font-mono font-bold text-slate-400 uppercase tracking-wide flex items-center gap-1.5 mb-2">
+              <AlertTriangle className="w-3.5 h-3.5 text-orange-400 shrink-0" />
+              <span>{t('dashboard.activeHazards')}</span>
+            </span>
+            <div className="flex flex-wrap gap-1.5">
+              <span className="px-2 py-1 rounded-md text-xs font-bold bg-red-950/80 text-red-400 border border-red-800 flex items-center gap-1">
+                🔴 {t('hazards.FLASH_FLOOD')}
+              </span>
+              <span className="px-2 py-1 rounded-md text-xs font-bold bg-amber-950/80 text-amber-400 border border-amber-800 flex items-center gap-1">
+                🟠 {t('hazards.LANDSLIDE')}
+              </span>
+              <span className="px-2 py-1 rounded-md text-xs font-bold bg-yellow-950/80 text-yellow-300 border border-yellow-800 flex items-center gap-1">
+                🟡 {t('hazards.EXTREME_RAINFALL')}
+              </span>
+            </div>
+          </div>
+
+          {/* Operations Overview */}
+          <div className="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between min-w-0">
+            <span className="text-[11px] font-mono font-bold text-slate-400 uppercase tracking-wide flex items-center gap-1.5 mb-2">
+              <Activity className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span>{t('dashboard.operations')}</span>
+            </span>
+            <div className="grid grid-cols-3 gap-2 text-xs font-mono">
+              <div className="min-w-0">
+                <span className="text-[10px] text-slate-500 block truncate">{t('dashboard.incidents')}</span>
+                <span className="text-white font-bold text-xs truncate block">🚨 6 Active</span>
+              </div>
+              <div className="min-w-0">
+                <span className="text-[10px] text-slate-500 block truncate">{t('dashboard.rescueTargets')}</span>
+                <span className="text-orange-400 font-bold text-xs truncate block">🚁 3 Priority</span>
+              </div>
+              <div className="min-w-0">
+                <span className="text-[10px] text-slate-500 block truncate">{t('dashboard.safeShelters')}</span>
+                <span className="text-emerald-400 font-bold text-xs truncate block">🛡 4 Ready</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Impact Exposure */}
+          <div className="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between min-w-0 md:col-span-2 xl:col-span-1">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-mono font-bold text-slate-400 uppercase tracking-wide flex items-center gap-1.5">
+                <Building2 className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                <span>{t('dashboard.impactExposure')}</span>
+              </span>
+              <DataProvenanceBadge status="ESTIMATED" source="GIS Matrix" />
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-xs font-mono text-center">
+              <div className="bg-slate-950 p-2 rounded-lg border border-slate-800/80 min-w-0">
+                <span className="text-[10px] text-slate-500 block truncate">{t('dashboard.population')}</span>
+                <span className="text-white font-bold text-xs truncate block">{formatNumber(18420)}</span>
+              </div>
+              <div className="bg-slate-950 p-2 rounded-lg border border-slate-800/80 min-w-0">
+                <span className="text-[10px] text-slate-500 block truncate">{t('dashboard.buildings')}</span>
+                <span className="text-white font-bold text-xs truncate block">{formatNumber(3241)}</span>
+              </div>
+              <div className="bg-slate-950 p-2 rounded-lg border border-slate-800/80 min-w-0">
+                <span className="text-[10px] text-slate-500 block truncate">{t('dashboard.roads')}</span>
+                <span className="text-white font-bold text-xs truncate block">31.5 km</span>
+              </div>
+              <div className="bg-slate-950 p-2 rounded-lg border border-slate-800/80 min-w-0">
+                <span className="text-[10px] text-slate-500 block truncate">{t('dashboard.hospitals')}</span>
+                <span className="text-emerald-400 font-bold text-xs truncate block">4</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -113,31 +309,31 @@ export const DashboardPage: React.FC = () => {
         />
       )}
 
-      {/* Top KPI Cards (Requirement 4) */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+      {/* Top KPI Cards - Responsive Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 w-full min-w-0">
         <StatCard
-          title="Overall Risk"
-          value={isNonMonitoredSearched ? 'N/A' : selectedStation.riskLevel}
+          title={t('dashboard.overallRisk')}
+          value={isMonitored && selectedStation ? selectedStation.riskLevel : 'N/A'}
           subtitle={
-            isNonMonitoredSearched
-              ? 'Non-monitored place'
-              : `Score: ${selectedStation.riskScore}/100`
+            isMonitored && selectedStation
+              ? `Score: ${selectedStation.riskScore}/100`
+              : t('app.notMonitored')
           }
           icon={ShieldAlert}
-          iconColor={isNonMonitoredSearched ? 'text-slate-500' : 'text-red-600'}
-          iconBg={isNonMonitoredSearched ? 'bg-slate-100' : 'bg-red-50'}
+          iconColor={isMonitored ? 'text-red-600' : 'text-slate-500'}
+          iconBg={isMonitored ? 'bg-red-50' : 'bg-slate-100'}
           badge={
-            isNonMonitoredSearched
-              ? { text: 'Not Monitored', variant: 'neutral' }
-              : {
+            isMonitored && selectedStation
+              ? {
                   text: `${selectedStation.riskScore}/100`,
                   variant: selectedStation.riskScore > 75 ? 'danger' : 'warning',
                 }
+              : { text: t('app.notMonitored'), variant: 'neutral' }
           }
         />
 
         <StatCard
-          title="Active Warnings"
+          title={t('dashboard.activeWarnings')}
           value={activeAlertsCount}
           subtitle="Critical & High bulletins"
           icon={BellRing}
@@ -147,7 +343,7 @@ export const DashboardPage: React.FC = () => {
         />
 
         <StatCard
-          title="High-Risk Zones"
+          title={t('dashboard.highRiskZones')}
           value="12"
           subtitle="Saturated slope sectors"
           icon={AlertTriangle}
@@ -156,29 +352,33 @@ export const DashboardPage: React.FC = () => {
         />
 
         <StatCard
-          title="Current Rainfall"
+          title={t('dashboard.currentRainfall')}
           value={
-            isNonMonitoredSearched
-              ? 'N/A'
-              : `${selectedStation.parameters.rainfall_mm} mm`
+            isMonitored && selectedStation
+              ? `${selectedStation.parameters.rainfall_mm} mm`
+              : 'N/A'
           }
-          subtitle={isNonMonitoredSearched ? 'No sensor node' : '24-hr cumulative'}
+          subtitle={isMonitored ? '24-hr cumulative' : 'No local sensor'}
           icon={CloudRain}
           iconColor="text-blue-600"
           iconBg="bg-blue-50"
         />
 
         <StatCard
-          title="Monitored Locations"
-          value="148"
-          subtitle="Telemetry stations"
-          icon={Radio}
+          title={t('dashboard.activeLocation')}
+          value={activeLocation.name.split(' ')[0]}
+          subtitle={activeLocation.state ? `${activeLocation.state}` : 'Geographic Node'}
+          icon={MapPin}
           iconColor="text-indigo-600"
           iconBg="bg-indigo-50"
+          badge={{
+            text: isMonitored ? 'Monitored' : 'Geographic',
+            variant: isMonitored ? 'success' : 'neutral',
+          }}
         />
 
         <StatCard
-          title="AI Land Scans"
+          title={t('dashboard.aiLandScans')}
           value={landScanCount}
           subtitle="U-Net 2D Vision"
           icon={ScanLine}
@@ -191,106 +391,122 @@ export const DashboardPage: React.FC = () => {
         />
 
         <StatCard
-          title="AI Confidence"
-          value={isNonMonitoredSearched ? 'N/A' : `${selectedStation.confidence}%`}
-          subtitle="RandomForest v2.4.1"
+          title={t('dashboard.aiConfidence')}
+          value={isMonitored && selectedStation ? `${selectedStation.confidence}%` : 'N/A'}
+          subtitle={isMonitored ? 'RandomForest v2.4.1' : 'Awaiting Input'}
           icon={Cpu}
           iconColor="text-emerald-600"
           iconBg="bg-emerald-50"
           badge={{
-            text: isNonMonitoredSearched ? 'Awaiting Input' : 'High Precision',
-            variant: isNonMonitoredSearched ? 'neutral' : 'success',
+            text: isMonitored ? 'High Precision' : 'Awaiting Input',
+            variant: isMonitored ? 'success' : 'neutral',
           }}
         />
       </div>
 
-      {/* Main Risk Overview (Requirement 5 & Requirement 11) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left: Interactive Risk Map (7 Columns) */}
-        <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200 p-4 shadow-xs flex flex-col">
+      {/* Multi-Hazard Decision Support Matrix */}
+      <MultiHazardRiskMatrix
+        assessment={multiHazardData}
+        isLoading={isLoadingHazard}
+        onSelectHazard={(hz) => setSelectedHazardType(hz)}
+      />
+
+      {/* Multi-Hazard Decision Pipeline Architecture Flow */}
+      <CascadingHazardFlow assessment={multiHazardData} />
+
+      {/* Main Risk Overview (GIS Map + Telemetry Panel) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 w-full min-w-0">
+        {/* Left: Interactive Risk Map (7 Columns on desktop, full width on mobile/tablet) */}
+        <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200 p-4 shadow-xs flex flex-col min-w-0">
           <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100">
-            <div className="flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-orange-600" />
-              <h3 className="text-sm font-bold text-slate-900">
-                Spatial Landslide Hazard Map & Terrain Exploration
+            <div className="flex items-center gap-2 min-w-0">
+              <MapPin className="w-4 h-4 text-orange-600 shrink-0" />
+              <h3 className="text-sm font-bold text-slate-900 truncate">
+                {t('dashboard.spatialGisTitle')}
               </h3>
             </div>
             <Link
               to="/risk-map"
-              className="text-xs font-semibold text-orange-600 hover:text-orange-700 flex items-center gap-1"
+              className="text-xs font-semibold text-orange-600 hover:text-orange-700 flex items-center gap-1 shrink-0"
             >
-              <span>Full Map</span>
+              <span>{t('dashboard.fullMap')}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
 
-          <div className="flex-1 min-h-[420px]">
+          <div className="flex-1 min-h-[360px] sm:min-h-[420px] lg:min-h-[460px]">
             <RiskMap
-              height="440px"
-              selectedStationId={selectedStation.id}
+              height="460px"
+              selectedStationId={selectedStation ? selectedStation.id : undefined}
               onStationSelect={(stn) => {
-                setSelectedStation(stn);
-                clearSearchedLocation();
+                selectTelemetryStation(stn);
               }}
             />
           </div>
         </div>
 
-        {/* Right: Risk Assessment or Non-Monitored Info Panel (5 Columns) */}
-        <div className="lg:col-span-5 bg-white rounded-2xl border border-slate-200 p-5 md:p-6 shadow-xs flex flex-col justify-between space-y-5">
-          {isNonMonitoredSearched && searchedLocation ? (
-            // Non-Monitored Searched Location State (Requirement 5B & 11)
+        {/* Right: Risk Assessment or Non-Monitored Info Panel (5 Columns on desktop, full width on mobile/tablet) */}
+        <div className="lg:col-span-5 bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs flex flex-col justify-between space-y-4 min-w-0">
+          {!isMonitored ? (
+            // Non-Monitored Searched Location State (e.g. Macherla, Chennai, Manali)
             <div className="space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div>
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                    Geographic Search Target
+                    {t('app.geographicSearchTarget')}
                   </span>
                   <h3 className="text-base font-bold text-slate-900 mt-0.5">
-                    Location Overview
+                    {activeLocation.name}
                   </h3>
                 </div>
                 <span className="text-[11px] font-mono font-bold px-2.5 py-1 rounded bg-slate-100 text-slate-700 border border-slate-200">
-                  Non-Monitored
+                  {t('app.notMonitored')}
                 </span>
               </div>
 
               <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-3">
                 <div className="flex items-baseline justify-between">
-                  <span className="text-xs font-semibold text-slate-500">Location:</span>
-                  <span className="text-xs font-bold text-slate-900">{searchedLocation.name}</span>
+                  <span className="text-xs font-semibold text-slate-500">{t('app.selectedPlace')}:</span>
+                  <span className="text-xs font-bold text-slate-900">{activeLocation.name}</span>
                 </div>
 
                 <div className="flex items-baseline justify-between">
-                  <span className="text-xs font-semibold text-slate-500">Region:</span>
-                  <span className="text-xs font-medium text-slate-700 text-right max-w-[200px] truncate">
-                    {searchedLocation.state ? `${searchedLocation.state}, ` : ''}{searchedLocation.country || 'India'}
+                  <span className="text-xs font-semibold text-slate-500">{t('app.addressRegion')}:</span>
+                  <span className="text-xs font-medium text-slate-700 text-right max-w-[220px] truncate" title={activeLocation.displayName}>
+                    {activeLocation.displayName}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-500">Coordinates:</span>
+                  <span className="text-xs font-semibold text-slate-500">{t('app.coordinates')}:</span>
                   <span className="text-xs font-mono font-bold text-slate-800">
-                    {searchedLocation.lat.toFixed(4)}, {searchedLocation.lng.toFixed(4)}
+                    {activeLocation.lat.toFixed(4)}, {activeLocation.lng.toFixed(4)}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between pt-1 border-t border-slate-200">
-                  <span className="text-xs font-semibold text-slate-500">Monitoring Status:</span>
+                  <span className="text-xs font-semibold text-slate-500">{t('app.localTelemetry')}:</span>
                   <span className="text-xs font-bold text-slate-600 bg-slate-200/80 px-2 py-0.5 rounded">
-                    Not currently monitored
+                    {t('app.noLocalTelemetry')}
                   </span>
                 </div>
+
+                {nearestStn && (
+                  <div className="flex items-center justify-between pt-1 text-[11px] text-slate-500 font-mono">
+                    <span>{t('app.nearestStation')}:</span>
+                    <strong className="text-slate-800">{nearestStn.station.name} ({nearestStn.distance_km} km)</strong>
+                  </div>
+                )}
               </div>
 
               {/* Notice that no fake data is generated */}
               <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 space-y-1">
                 <div className="flex items-center gap-1.5 font-bold">
                   <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-                  <span>Monitoring data unavailable for this location</span>
+                  <span>No automated sensors deployed at this specific site</span>
                 </div>
                 <p className="text-[11px] text-amber-800 leading-relaxed">
-                  No automated sensors or rainfall gauges are deployed at this specific site. To calculate landslide hazard for this area, enter or obtain the 9 environmental parameters in the AI Predictor.
+                  No automated sensors or rainfall gauges are deployed in {activeLocation.name}. To calculate landslide hazard for this area, enter environmental parameters into the AI Predictor or run AI Land Scan.
                 </p>
               </div>
 
@@ -305,8 +521,8 @@ export const DashboardPage: React.FC = () => {
                 </button>
               </div>
             </div>
-          ) : (
-            // Monitored Station State (Requirement 5A)
+          ) : selectedStation ? (
+            // Monitored Station State (e.g. Munnar, Meppadi, Shimla)
             <div>
               {/* Header */}
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
@@ -315,7 +531,7 @@ export const DashboardPage: React.FC = () => {
                     Active Station Telemetry
                   </span>
                   <h3 className="text-base font-bold text-slate-900 mt-0.5">
-                    Current Risk Assessment
+                    {selectedStation.name}
                   </h3>
                 </div>
                 <RiskBadge
@@ -364,47 +580,30 @@ export const DashboardPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Primary Risk Factors (Requirement 5) */}
-              <div className="mt-5 space-y-1">
-                <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-slate-400 pb-1 border-b border-slate-100">
-                  <span>Primary Risk Factors</span>
-                  <span>Impact</span>
+              {/* Primary Risk Factors */}
+              {factors && factors.length > 0 && selectedStation && (
+                <div className="mt-5 space-y-1">
+                  <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-slate-400 pb-1 border-b border-slate-100">
+                    <span>Primary Risk Factors</span>
+                    <span className="text-slate-400 font-mono">Weight / Impact</span>
+                  </div>
+                  <div className="space-y-2 pt-2">
+                    {factors.slice(0, 3).map((f) => (
+                      <RiskFactorBar
+                        key={f.name}
+                        label={f.name}
+                        score={f.score}
+                        valueDisplay={String(f.value)}
+                        level={f.impact}
+                        explanation={f.explanation}
+                        direction={f.direction}
+                      />
+                    ))}
+                  </div>
                 </div>
-
-                {factors.slice(0, 5).map((factor) => (
-                  <RiskFactorBar
-                    key={factor.name}
-                    label={factor.name.split(' ')[0]}
-                    valueDisplay={String(factor.value)}
-                    level={factor.impact}
-                    score={factor.score}
-                    direction={factor.direction}
-                  />
-                ))}
-              </div>
+              )}
             </div>
-          )}
-
-          {/* Bottom Actions */}
-          {!isNonMonitoredSearched && (
-            <div className="pt-3 border-t border-slate-100 grid grid-cols-2 gap-2.5">
-              <Link
-                to="/impact-analysis"
-                className="py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
-              >
-                <Building2 className="w-4 h-4 text-blue-600" />
-                <span>Impact Analysis</span>
-              </Link>
-
-              <Link
-                to="/evacuation"
-                className="py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-2xs"
-              >
-                <Navigation className="w-4 h-4 text-emerald-400" />
-                <span>Evacuation Plan</span>
-              </Link>
-            </div>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

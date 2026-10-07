@@ -6,16 +6,36 @@ import {
   Popup,
   Polygon,
   Polyline,
+  Circle,
   useMap,
 } from 'react-leaflet';
 import L from 'leaflet';
-import { MonitoringStation, RiskZonePolygon, SearchedLocation } from '../../types/map';
+import {
+  MonitoringStation,
+  RiskZonePolygon,
+  SearchedLocation,
+  DisasterIncident,
+  RainfallStationTelemetry,
+  WaterBodyTelemetry,
+  EmergencyInfrastructureItem,
+  CriticalInfrastructureItem,
+  SensorNodeItem,
+  PopulationVulnerabilityItem,
+  DisasterMapLayersState,
+  DEFAULT_MAP_LAYERS,
+} from '../../types/map';
 import { SafeZone } from '../../types/evacuation';
 import { LocationPopup } from './LocationPopup';
 import { SearchedLocationPopup } from './SearchedLocationPopup';
-import { MapLegend } from './MapLegend';
+import { IncidentPopup } from './IncidentPopup';
+import { WaterTelemetryPopup } from './WaterTelemetryPopup';
+import { RainfallStationPopup } from './RainfallStationPopup';
+import { EmergencyInfraPopup } from './EmergencyInfraPopup';
+import { CriticalInfraPopup, SensorNodePopup } from './CriticalInfraPopup';
+import { DynamicDisasterLegend } from './DynamicDisasterLegend';
+import { DisasterLayerControl } from './DisasterLayerControl';
 import { getRiskColor } from '../../utils/riskLevel';
-import { Layers, Maximize2, Shield, Eye, EyeOff } from 'lucide-react';
+import { Maximize2, Shield, AlertTriangle, Info, Navigation } from 'lucide-react';
 import { MONITORED_STATIONS, RISK_ZONES, SAFE_ZONES } from '../../utils/constants';
 import { useApp } from '../../context/AppContext';
 
@@ -31,7 +51,11 @@ function ChangeMapView({ center, zoom }: { center: [number, number]; zoom: numbe
   return null;
 }
 
-// Create custom colored DivIcon for Stations
+// ----------------------------------------------------------------------
+// CUSTOM LEAFLET DIV ICONS
+// ----------------------------------------------------------------------
+
+// 1. Monitoring Station Icon
 const createStationIcon = (riskScore: number, riskLevel: string) => {
   const color = getRiskColor(riskLevel as any);
   const isCritical = riskLevel === 'CRITICAL' || riskLevel === 'HIGH';
@@ -56,7 +80,179 @@ const createStationIcon = (riskScore: number, riskLevel: string) => {
   });
 };
 
-// Neutral Blue/Slate Icon for Non-Monitored Searched Locations
+// 2. Disaster Incident Icon
+const createIncidentIcon = (type: string, severity: string, status: string) => {
+  let iconChar = '⚠️';
+  let bgColor = '#ef4444';
+
+  if (type === 'LANDSLIDE') {
+    iconChar = '⛰️';
+    bgColor = '#dc2626';
+  } else if (type === 'FLOOD' || type === 'FLASH_FLOOD') {
+    iconChar = '🌊';
+    bgColor = '#0284c7';
+  } else if (type === 'FIRE') {
+    iconChar = '🔥';
+    bgColor = '#ea580c';
+  } else if (type === 'EARTHQUAKE') {
+    iconChar = '⚡';
+    bgColor = '#d97706';
+  } else if (type === 'ROAD_BLOCKAGE') {
+    iconChar = '🚫';
+    bgColor = '#e11d48';
+  } else if (type === 'STRUCTURAL_DAMAGE') {
+    iconChar = '🏚️';
+    bgColor = '#b91c1c';
+  }
+
+  const isPulse = severity === 'CRITICAL' || status === 'ACTIVE';
+
+  return L.divIcon({
+    className: 'custom-incident-pin',
+    html: `
+      <div style="position: relative; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+        ${isPulse ? `<div style="position: absolute; width: 38px; height: 38px; border-radius: 9999px; background-color: ${bgColor}; opacity: 0.35;" class="pulse-marker"></div>` : ''}
+        <div style="width: 26px; height: 26px; border-radius: 8px; background-color: ${bgColor}; border: 2px solid white; box-shadow: 0 4px 8px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; font-size: 13px;">
+          ${iconChar}
+        </div>
+      </div>
+    `,
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+    popupAnchor: [0, -16],
+  });
+};
+
+// 3. Rainfall Station Icon
+const createRainfallIcon = (rain24h: number) => {
+  return L.divIcon({
+    className: 'custom-rain-pin',
+    html: `
+      <div style="background-color: #2563eb; color: white; border: 2px solid white; border-radius: 6px; padding: 2px 5px; font-weight: 800; font-size: 10px; font-family: monospace; box-shadow: 0 3px 6px rgba(0,0,0,0.25); display: flex; align-items: center; gap: 3px;">
+        <span>🌧️</span>
+        <span>${rain24h}mm</span>
+      </div>
+    `,
+    iconSize: [58, 22],
+    iconAnchor: [29, 11],
+    popupAnchor: [0, -11],
+  });
+};
+
+// 4. Water Body / Dam Icon
+const createWaterIcon = (type: string, status: string) => {
+  const isCrit = status === 'CRITICAL' || status === 'WARNING';
+  const color = isCrit ? '#ef4444' : '#0ea5e9';
+  const iconEmoji = type === 'DAM_RESERVOIR' ? '🛡️' : '🌊';
+
+  return L.divIcon({
+    className: 'custom-water-pin',
+    html: `
+      <div style="width: 24px; height: 24px; border-radius: 9999px; background-color: ${color}; border: 2px solid white; box-shadow: 0 3px 6px rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: center; font-size: 12px; color: white;">
+        ${iconEmoji}
+      </div>
+    `,
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+    popupAnchor: [0, -12],
+  });
+};
+
+// 5. Emergency Infrastructure Icon
+const createEmergencyInfraIcon = (type: string) => {
+  let emoji = '🏥';
+  let bg = '#dc2626';
+
+  if (type === 'HOSPITAL') {
+    emoji = '🏥';
+    bg = '#dc2626';
+  } else if (type === 'AMBULANCE_STATION') {
+    emoji = '🚑';
+    bg = '#d97706';
+  } else if (type === 'FIRE_STATION') {
+    emoji = '🚒';
+    bg = '#e11d48';
+  } else if (type === 'POLICE_STATION') {
+    emoji = '👮';
+    bg = '#2563eb';
+  } else if (type === 'EMERGENCY_OPERATION_CENTER') {
+    emoji = '🏛️';
+    bg = '#4f46e5';
+  }
+
+  return L.divIcon({
+    className: 'custom-emergency-pin',
+    html: `
+      <div style="width: 26px; height: 26px; border-radius: 6px; background-color: ${bg}; border: 2px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: center; font-size: 13px;">
+        ${emoji}
+      </div>
+    `,
+    iconSize: [26, 26],
+    iconAnchor: [13, 13],
+    popupAnchor: [0, -13],
+  });
+};
+
+// 6. Critical Infrastructure Icon
+const createCriticalInfraIcon = (type: string, status: string) => {
+  let emoji = '🏗️';
+  if (type === 'BRIDGES') emoji = '🌉';
+  else if (type === 'TUNNELS') emoji = '🚇';
+  else if (type === 'AIRPORTS') emoji = '✈️';
+  else if (type === 'COMMUNICATION_TOWERS') emoji = '📡';
+  else if (type === 'POWER_INFRASTRUCTURE') emoji = '⚡';
+  else if (type === 'RAILWAYS') emoji = '🚆';
+  else if (type === 'ROADS') emoji = '🛣️';
+
+  const isBlocked = status === 'BLOCKED' || status === 'DAMAGED';
+  const borderCol = isBlocked ? '#ef4444' : '#64748b';
+
+  return L.divIcon({
+    className: 'custom-infra-pin',
+    html: `
+      <div style="width: 24px; height: 24px; border-radius: 6px; background-color: #f8fafc; border: 2px solid ${borderCol}; box-shadow: 0 3px 6px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; font-size: 12px;">
+        ${emoji}
+      </div>
+    `,
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+    popupAnchor: [0, -12],
+  });
+};
+
+// 7. Sensor Node Icon
+const createSensorIcon = (type: string, status: string) => {
+  let color = '#10b981'; // online
+  if (status === 'WARNING') color = '#f59e0b';
+  if (status === 'OFFLINE') color = '#94a3b8';
+
+  return L.divIcon({
+    className: 'custom-sensor-pin',
+    html: `
+      <div style="position: relative; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;">
+        <div style="width: 14px; height: 14px; border-radius: 9999px; background-color: ${color}; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.25);"></div>
+      </div>
+    `,
+    iconSize: [22, 22],
+    iconAnchor: [11, 11],
+    popupAnchor: [0, -11],
+  });
+};
+
+// 8. Safe Zone Shelter Icon
+const safeZoneIcon = L.divIcon({
+  className: 'custom-safe-pin',
+  html: `
+    <div style="width: 26px; height: 26px; border-radius: 7px; background-color: #059669; border: 2px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px;">
+      🏠
+    </div>
+  `,
+  iconSize: [26, 26],
+  iconAnchor: [13, 13],
+  popupAnchor: [0, -13],
+});
+
+// 9. Searched Location Icon
 const createSearchedIcon = () => {
   return L.divIcon({
     className: 'custom-searched-pin',
@@ -74,23 +270,21 @@ const createSearchedIcon = () => {
   });
 };
 
-// Safe Zone Icon
-const safeZoneIcon = L.divIcon({
-  className: 'custom-safe-pin',
-  html: `
-    <div style="width: 24px; height: 24px; border-radius: 6px; background-color: #059669; border: 2px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: center; color: white;">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-    </div>
-  `,
-  iconSize: [24, 24],
-  iconAnchor: [12, 12],
-  popupAnchor: [0, -12],
-});
+// ----------------------------------------------------------------------
+// COMPONENT PROPS & MAIN IMPLEMENTATION
+// ----------------------------------------------------------------------
 
 interface RiskMapProps {
   stations?: MonitoringStation[];
   riskZones?: RiskZonePolygon[];
   safeZones?: SafeZone[];
+  incidents?: DisasterIncident[];
+  rainfallStations?: RainfallStationTelemetry[];
+  waterBodies?: WaterBodyTelemetry[];
+  emergencyInfrastructure?: EmergencyInfrastructureItem[];
+  criticalInfrastructure?: CriticalInfrastructureItem[];
+  sensors?: SensorNodeItem[];
+  vulnerabilityZones?: PopulationVulnerabilityItem[];
   center?: [number, number];
   zoom?: number;
   height?: string;
@@ -98,49 +292,111 @@ interface RiskMapProps {
   onStationSelect?: (station: MonitoringStation) => void;
   showLegend?: boolean;
   showControls?: boolean;
+  activeLayers?: DisasterMapLayersState;
+  onLayersChange?: (layers: DisasterMapLayersState) => void;
 }
 
 export const RiskMap: React.FC<RiskMapProps> = ({
   stations = MONITORED_STATIONS,
   riskZones = RISK_ZONES,
   safeZones = SAFE_ZONES,
+  incidents = [],
+  rainfallStations = [],
+  waterBodies = [],
+  emergencyInfrastructure = [],
+  criticalInfrastructure = [],
+  sensors = [],
+  vulnerabilityZones = [],
   center,
   zoom,
-  height = '540px',
+  height = '620px',
   selectedStationId,
   onStationSelect,
   showLegend = true,
   showControls = true,
+  activeLayers,
+  onLayersChange,
 }) => {
   const { mapCenter, mapZoom, searchedLocation } = useApp();
   const activeCenter = center || mapCenter;
   const activeZoom = zoom || mapZoom;
 
-  const [showZonesLayer, setShowZonesLayer] = useState(true);
-  const [showStationsLayer, setShowStationsLayer] = useState(true);
-  const [showSafeZonesLayer, setShowSafeZonesLayer] = useState(true);
-  const [layerDropdownOpen, setLayerDropdownOpen] = useState(false);
+  const [localLayers, setLocalLayers] = useState<DisasterMapLayersState>(
+    activeLayers || DEFAULT_MAP_LAYERS
+  );
 
-  // Demo road line & river path vectors for Wayanad region
-  const demoRoad: [number, number][] = [
-    [11.515, 76.120],
-    [11.530, 76.128],
-    [11.5362, 76.1308],
-    [11.545, 76.140],
-    [11.565, 76.155],
+  useEffect(() => {
+    if (activeLayers) {
+      setLocalLayers(activeLayers);
+    }
+  }, [activeLayers]);
+
+  const handleLayersChange = (newLayers: DisasterMapLayersState) => {
+    setLocalLayers(newLayers);
+    if (onLayersChange) {
+      onLayersChange(newLayers);
+    }
+  };
+
+  // Base Tile Provider
+  const getTileUrl = () => {
+    switch (localLayers.baseMap) {
+      case 'SATELLITE':
+        return 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+      case 'TERRAIN':
+        return 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png';
+      case 'STANDARD':
+      default:
+        return 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+    }
+  };
+
+  const getTileAttribution = () => {
+    switch (localLayers.baseMap) {
+      case 'SATELLITE':
+        return '&copy; <a href="https://www.esri.com/">Esri</a>, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP';
+      case 'TERRAIN':
+        return '&copy; <a href="https://opentopomap.org">OpenTopoMap</a> (&copy; OSM contributors)';
+      case 'STANDARD':
+      default:
+        return '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+    }
+  };
+
+  // Evacuation Corridors & Hazard Intersections
+  const demoEvacSafeRoute: [number, number][] = [
+    [activeCenter[0] - 0.015, activeCenter[1] - 0.02],
+    [activeCenter[0] - 0.008, activeCenter[1] - 0.012],
+    [activeCenter[0] - 0.002, activeCenter[1] - 0.005],
+    [activeCenter[0] + 0.012, activeCenter[1] + 0.018],
+    [activeCenter[0] + 0.025, activeCenter[1] + 0.035],
   ];
 
-  const demoRiver: [number, number][] = [
-    [11.510, 76.115],
-    [11.528, 76.125],
-    [11.534, 76.129],
-    [11.552, 76.138],
-    [11.570, 76.160],
+  const demoEvacBlockedRoute: [number, number][] = [
+    [activeCenter[0] + 0.005, activeCenter[1] - 0.015],
+    [activeCenter[0] + 0.008, activeCenter[1] - 0.008],
+    [activeCenter[0] + 0.012, activeCenter[1] + 0.002],
+  ];
+
+  const demoEvacAltRoute: [number, number][] = [
+    [activeCenter[0] - 0.015, activeCenter[1] - 0.02],
+    [activeCenter[0] - 0.022, activeCenter[1] - 0.005],
+    [activeCenter[0] - 0.018, activeCenter[1] + 0.02],
+    [activeCenter[0] + 0.025, activeCenter[1] + 0.035],
   ];
 
   return (
-    <div className="relative w-full rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-slate-100" style={{ height }}>
-      {/* Map Container */}
+    <div className="relative w-full rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-slate-900" style={{ height }}>
+      {/* Route Hazard Intersection Warning Banner */}
+      {localLayers.evacuation.blockedRoads && (
+        <div className="absolute top-3 left-3 z-[1000] bg-rose-900/90 text-rose-100 backdrop-blur-md px-3 py-1.5 rounded-xl border border-rose-700/80 shadow-lg text-xs font-sans flex items-center gap-2 animate-in fade-in">
+          <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 animate-bounce" />
+          <span className="font-bold">⚠️ ROUTE HAZARD DETECTED:</span>
+          <span className="text-[11px] text-rose-200">Slope Instability Corridor Blocked • Rerouting active</span>
+        </div>
+      )}
+
+      {/* Main Leaflet Map */}
       <MapContainer
         center={activeCenter}
         zoom={activeZoom}
@@ -149,24 +405,15 @@ export const RiskMap: React.FC<RiskMapProps> = ({
       >
         <ChangeMapView center={activeCenter} zoom={activeZoom} />
 
-        {/* Base Tile Layer */}
+        {/* Dynamic Tile Layer */}
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          key={localLayers.baseMap}
+          attribution={getTileAttribution()}
+          url={getTileUrl()}
         />
 
-        {/* Roads & Rivers Overlays */}
-        <Polyline
-          positions={demoRoad}
-          pathOptions={{ color: '#475569', weight: 3, dashArray: '4, 4' }}
-        />
-        <Polyline
-          positions={demoRiver}
-          pathOptions={{ color: '#38bdf8', weight: 2.5, opacity: 0.8 }}
-        />
-
-        {/* Risk Zone Polygons */}
-        {showZonesLayer &&
+        {/* 1. HAZARDS: Landslide Risk Polygons */}
+        {localLayers.hazards.landslideRisk &&
           riskZones.map((zone) => {
             const color = getRiskColor(zone.riskLevel);
             return (
@@ -177,13 +424,19 @@ export const RiskMap: React.FC<RiskMapProps> = ({
                   color: color,
                   fillColor: color,
                   fillOpacity: 0.35,
-                  weight: 2,
-                  dashArray: zone.riskLevel === 'CRITICAL' ? '2, 4' : undefined,
+                  weight: 2.5,
+                  dashArray: zone.riskLevel === 'CRITICAL' ? '4, 4' : undefined,
                 }}
               >
                 <Popup className="custom-leaflet-popup">
                   <div className="p-3 text-xs font-sans">
-                    <div className="font-bold text-slate-900 mb-1">{zone.name}</div>
+                    <div className="flex items-center justify-between gap-1 mb-1">
+                      <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-800">
+                        {zone.riskLevel}
+                      </span>
+                      <span className="font-mono text-[10px] text-slate-500">Score: {zone.riskScore}</span>
+                    </div>
+                    <div className="font-bold text-slate-900 text-xs mb-1">{zone.name}</div>
                     <div className="text-[11px] text-slate-500 mb-2">
                       Area: {zone.areaSqKm} km² • Risk Level: <strong>{zone.riskLevel}</strong>
                     </div>
@@ -196,8 +449,61 @@ export const RiskMap: React.FC<RiskMapProps> = ({
             );
           })}
 
-        {/* Safe Zones Markers */}
-        {showSafeZonesLayer &&
+        {/* 1. HAZARDS: Active Disaster Incidents */}
+        {localLayers.hazards.activeIncidents &&
+          incidents.map((inc) => (
+            <Marker
+              key={inc.id}
+              position={[inc.latitude, inc.longitude]}
+              icon={createIncidentIcon(inc.type, inc.severity, inc.status)}
+            >
+              <Popup className="custom-leaflet-popup">
+                <IncidentPopup incident={inc} />
+              </Popup>
+            </Marker>
+          ))}
+
+        {/* 2. WEATHER: Live Rainfall Stations */}
+        {localLayers.weather.rainfall &&
+          rainfallStations.map((rainStn) => (
+            <Marker
+              key={rainStn.id}
+              position={[rainStn.latitude, rainStn.longitude]}
+              icon={createRainfallIcon(rainStn.rainfall_24h_mm)}
+            >
+              <Popup className="custom-leaflet-popup">
+                <RainfallStationPopup station={rainStn} />
+              </Popup>
+            </Marker>
+          ))}
+
+        {/* 3. WATER: Rivers & Reservoirs */}
+        {localLayers.water.rivers &&
+          waterBodies.map((wb) => (
+            <React.Fragment key={wb.id}>
+              {wb.poly_line && (
+                <Polyline
+                  positions={wb.poly_line}
+                  pathOptions={{
+                    color: wb.sensor_status === 'CRITICAL' ? '#ef4444' : '#0284c7',
+                    weight: 3.5,
+                    opacity: 0.85,
+                  }}
+                />
+              )}
+              <Marker
+                position={[wb.latitude, wb.longitude]}
+                icon={createWaterIcon(wb.type, wb.sensor_status)}
+              >
+                <Popup className="custom-leaflet-popup">
+                  <WaterTelemetryPopup waterBody={wb} />
+                </Popup>
+              </Marker>
+            </React.Fragment>
+          ))}
+
+        {/* 4. EMERGENCY: Safe Relief Shelters */}
+        {localLayers.emergency.emergencyShelters &&
           safeZones.map((sz) => (
             <Marker
               key={sz.id}
@@ -208,40 +514,194 @@ export const RiskMap: React.FC<RiskMapProps> = ({
                 <div className="p-3 text-xs font-sans">
                   <div className="flex items-center gap-1.5 text-emerald-700 font-bold mb-1">
                     <Shield className="w-3.5 h-3.5" />
-                    <span>SAFE RELIEF ZONE</span>
+                    <span>EMERGENCY SAFE SHELTER</span>
                   </div>
-                  <div className="font-bold text-slate-900">{sz.name}</div>
+                  <div className="font-bold text-slate-900 text-xs">{sz.name}</div>
                   <div className="text-[11px] text-slate-500 mt-1">
-                    Capacity: <strong>{sz.capacityOccupied} / {sz.capacityTotal}</strong>
+                    Capacity: <strong>{sz.capacityOccupied} / {sz.capacityTotal}</strong> (Available: {sz.capacityTotal - sz.capacityOccupied})
                   </div>
-                  <div className="text-[10px] text-emerald-600 font-semibold mt-1">
-                    ✓ Verified High Elevation Safety
-                  </div>
+                  {sz.facilities && (
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {sz.facilities.slice(0, 3).map((f) => (
+                        <span key={f} className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 text-[9px] font-medium border border-emerald-200">
+                          {f}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {sz.contactNumber && (
+                    <div className="text-[10px] text-slate-600 font-mono mt-1.5">
+                      Phone: <strong>{sz.contactNumber}</strong>
+                    </div>
+                  )}
                 </div>
               </Popup>
             </Marker>
           ))}
 
-        {/* Monitoring Stations Markers */}
-        {showStationsLayer &&
-          stations.map((stn) => (
-            <Marker
-              key={stn.id}
-              position={[stn.coordinates.lat, stn.coordinates.lng]}
-              icon={createStationIcon(stn.riskScore, stn.riskLevel)}
-              eventHandlers={{
-                click: () => {
-                  if (onStationSelect) onStationSelect(stn);
-                },
+        {/* 4. EMERGENCY: Hospitals, Ambulance, Fire, Police, EOC */}
+        {(localLayers.emergency.hospitals ||
+          localLayers.emergency.ambulanceStations ||
+          localLayers.emergency.fireStations ||
+          localLayers.emergency.policeStations ||
+          localLayers.emergency.eoc) &&
+          emergencyInfrastructure
+            .filter((item) => {
+              if (item.type === 'HOSPITAL' && localLayers.emergency.hospitals) return true;
+              if (item.type === 'AMBULANCE_STATION' && localLayers.emergency.ambulanceStations) return true;
+              if (item.type === 'FIRE_STATION' && localLayers.emergency.fireStations) return true;
+              if (item.type === 'POLICE_STATION' && localLayers.emergency.policeStations) return true;
+              if (item.type === 'EMERGENCY_OPERATION_CENTER' && localLayers.emergency.eoc) return true;
+              return false;
+            })
+            .map((em) => (
+              <Marker
+                key={em.id}
+                position={[em.latitude, em.longitude]}
+                icon={createEmergencyInfraIcon(em.type)}
+              >
+                <Popup className="custom-leaflet-popup">
+                  <EmergencyInfraPopup item={em} />
+                </Popup>
+              </Marker>
+            ))}
+
+        {/* 5. INFRASTRUCTURE: Roads, Bridges, Tunnels, Power, Telecom */}
+        {Object.values(localLayers.infrastructure).some(Boolean) &&
+          criticalInfrastructure
+            .filter((item) => {
+              if (item.type === 'ROADS' && localLayers.infrastructure.roads) return true;
+              if (item.type === 'BRIDGES' && localLayers.infrastructure.bridges) return true;
+              if (item.type === 'TUNNELS' && localLayers.infrastructure.tunnels) return true;
+              if (item.type === 'RAILWAYS' && localLayers.infrastructure.railways) return true;
+              if (item.type === 'AIRPORTS' && localLayers.infrastructure.airports) return true;
+              if (item.type === 'COMMUNICATION_TOWERS' && localLayers.infrastructure.communicationTowers) return true;
+              if (item.type === 'POWER_INFRASTRUCTURE' && localLayers.infrastructure.powerInfra) return true;
+              return false;
+            })
+            .map((inf) => (
+              <Marker
+                key={inf.id}
+                position={[inf.latitude, inf.longitude]}
+                icon={createCriticalInfraIcon(inf.type, inf.status)}
+              >
+                <Popup className="custom-leaflet-popup">
+                  <CriticalInfraPopup item={inf} />
+                </Popup>
+              </Marker>
+            ))}
+
+        {/* 6. SENSORS: Multi-parameter IoT Nodes */}
+        {Object.values(localLayers.sensors).some(Boolean) &&
+          sensors
+            .filter((s) => {
+              if (s.sensor_type === 'RAIN_GAUGE' && localLayers.sensors.rainfallSensors) return true;
+              if (s.sensor_type === 'SOIL_MOISTURE' && localLayers.sensors.soilMoistureSensors) return true;
+              if (s.sensor_type === 'SLOPE_SENSOR' && localLayers.sensors.slopeSensors) return true;
+              if (s.sensor_type === 'RIVER_LEVEL' && localLayers.sensors.riverSensors) return true;
+              if (s.sensor_type === 'SEISMIC' && localLayers.sensors.seismicSensors) return true;
+              return false;
+            })
+            .map((sensor) => (
+              <Marker
+                key={sensor.id}
+                position={[sensor.latitude, sensor.longitude]}
+                icon={createSensorIcon(sensor.sensor_type, sensor.status)}
+              >
+                <Popup className="custom-leaflet-popup">
+                  <SensorNodePopup sensor={sensor} />
+                </Popup>
+              </Marker>
+            ))}
+
+        {/* 7. EVACUATION: Recommended Route (Green Solid), Alternative (Blue Solid), Blocked (Red Dashed) */}
+        {localLayers.evacuation.safeEvacuationRoutes && (
+          <Polyline
+            positions={demoEvacSafeRoute}
+            pathOptions={{
+              color: '#10b981',
+              weight: 5.5,
+              opacity: 0.9,
+              lineCap: 'round',
+              lineJoin: 'round',
+            }}
+          />
+        )}
+        {localLayers.evacuation.alternativeRoutes && (
+          <Polyline
+            positions={demoEvacAltRoute}
+            pathOptions={{
+              color: '#3b82f6',
+              weight: 4.5,
+              opacity: 0.85,
+              lineCap: 'round',
+              lineJoin: 'round',
+            }}
+          />
+        )}
+        {localLayers.evacuation.blockedRoads && (
+          <Polyline
+            positions={demoEvacBlockedRoute}
+            pathOptions={{
+              color: '#ef4444',
+              weight: 5,
+              opacity: 0.95,
+              dashArray: '8, 8',
+            }}
+          />
+        )}
+
+        {/* 8. POPULATION VULNERABILITY ZONES */}
+        {localLayers.vulnerability.populationZones &&
+          vulnerabilityZones.map((vz) => (
+            <Circle
+              key={vz.id}
+              center={[vz.latitude, vz.longitude]}
+              radius={600}
+              pathOptions={{
+                color: '#6366f1',
+                fillColor: '#6366f1',
+                fillOpacity: 0.25,
+                weight: 1.5,
+                dashArray: '4, 4',
               }}
             >
               <Popup className="custom-leaflet-popup">
-                <LocationPopup station={stn} onSelect={() => onStationSelect && onStationSelect(stn)} />
+                <div className="p-3 text-xs font-sans">
+                  <div className="text-[10px] font-mono text-indigo-700 font-bold uppercase">
+                    👥 Population Vulnerability Area
+                  </div>
+                  <div className="font-bold text-slate-900 text-xs mt-0.5">{vz.name}</div>
+                  <div className="text-[11px] text-slate-600 mt-1">
+                    Est. Population: <strong>{vz.estimated_population}</strong>
+                  </div>
+                  <div className="text-[10px] text-amber-700 bg-amber-50 p-1 rounded mt-1 font-mono">
+                    {vz.note}
+                  </div>
+                </div>
               </Popup>
-            </Marker>
+            </Circle>
           ))}
 
-        {/* Neutral Marker for Searched Non-Monitored Location */}
+        {/* 9. Core Monitoring Stations */}
+        {stations.map((stn) => (
+          <Marker
+            key={stn.id}
+            position={[stn.coordinates.lat, stn.coordinates.lng]}
+            icon={createStationIcon(stn.riskScore, stn.riskLevel)}
+            eventHandlers={{
+              click: () => {
+                if (onStationSelect) onStationSelect(stn);
+              },
+            }}
+          >
+            <Popup className="custom-leaflet-popup">
+              <LocationPopup station={stn} onSelect={() => onStationSelect && onStationSelect(stn)} />
+            </Popup>
+          </Marker>
+        ))}
+
+        {/* Searched Location Marker */}
         {searchedLocation && !searchedLocation.isMonitored && (
           <Marker
             position={[searchedLocation.lat, searchedLocation.lng]}
@@ -254,81 +714,21 @@ export const RiskMap: React.FC<RiskMapProps> = ({
         )}
       </MapContainer>
 
-      {/* Floating Controls Bar */}
+      {/* Floating GIS Layer Controls (Top Right) */}
       {showControls && (
-        <div className="absolute top-3 right-3 z-[1000] flex flex-col gap-2">
-          {/* Layer Selector */}
-          <div className="relative">
-            <button
-              onClick={() => setLayerDropdownOpen(!layerDropdownOpen)}
-              className="p-2.5 rounded-xl bg-white/95 backdrop-blur-xs text-slate-700 hover:text-slate-900 shadow-md border border-slate-200 transition-colors"
-              title="Toggle Map Layers"
-            >
-              <Layers className="w-4 h-4" />
-            </button>
-
-            {layerDropdownOpen && (
-              <>
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={() => setLayerDropdownOpen(false)}
-                />
-                <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-xl border border-slate-200 p-3 z-50 text-xs space-y-2 animate-in fade-in duration-150 font-sans">
-                  <div className="font-bold text-slate-900 text-[11px] uppercase tracking-wider pb-1.5 border-b border-slate-100">
-                    Map Layers
-                  </div>
-                  <label className="flex items-center gap-2 cursor-pointer text-slate-700">
-                    <input
-                      type="checkbox"
-                      checked={showZonesLayer}
-                      onChange={(e) => setShowZonesLayer(e.target.checked)}
-                      className="rounded text-orange-600 focus:ring-orange-500"
-                    />
-                    <span>Risk Zone Polygons</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer text-slate-700">
-                    <input
-                      type="checkbox"
-                      checked={showStationsLayer}
-                      onChange={(e) => setShowStationsLayer(e.target.checked)}
-                      className="rounded text-orange-600 focus:ring-orange-500"
-                    />
-                    <span>Monitoring Stations</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer text-slate-700">
-                    <input
-                      type="checkbox"
-                      checked={showSafeZonesLayer}
-                      onChange={(e) => setShowSafeZonesLayer(e.target.checked)}
-                      className="rounded text-emerald-600 focus:ring-emerald-500"
-                    />
-                    <span>Safe Relief Zones</span>
-                  </label>
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Recenter / Focus Button */}
-          <button
-            onClick={() => {
-              // Recenter to active station or searched location
-              if (searchedLocation) {
-                // Keep searched location
-              }
-            }}
-            className="p-2.5 rounded-xl bg-white/95 backdrop-blur-xs text-slate-700 hover:text-slate-900 shadow-md border border-slate-200 transition-colors"
-            title="Map Views"
-          >
-            <Maximize2 className="w-4 h-4" />
-          </button>
+        <div className="absolute top-3 right-3 z-[1000] flex items-center gap-2">
+          <DisasterLayerControl
+            layers={localLayers}
+            onChange={handleLayersChange}
+            onReset={() => handleLayersChange(DEFAULT_MAP_LAYERS)}
+          />
         </div>
       )}
 
-      {/* Floating Legend */}
+      {/* Floating Dynamic Legend (Bottom Left) */}
       {showLegend && (
         <div className="absolute bottom-4 left-4 z-[1000] max-w-xs hidden sm:block">
-          <MapLegend />
+          <DynamicDisasterLegend layers={localLayers} />
         </div>
       )}
     </div>

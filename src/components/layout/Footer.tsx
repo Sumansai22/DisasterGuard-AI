@@ -11,10 +11,10 @@ export const Footer: React.FC = () => {
         <div className="flex items-center gap-2">
           <ShieldCheck className="w-4 h-4 text-orange-600" />
           <span className="font-semibold text-slate-800">
-            LandslideGuard AI — SIH26001
+            DisasterGuard AI — SIH26001
           </span>
           <span className="text-slate-300">•</span>
-          <span>National Early-Warning Landslide Risk Monitoring Platform</span>
+          <span>Multi-Hazard Disaster Management & Early Warning System</span>
         </div>
 
         <div className="flex flex-wrap items-center gap-4 text-[11px] font-mono">

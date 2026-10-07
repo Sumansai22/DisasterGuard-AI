@@ -1,36 +1,97 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { RiskMap } from '../components/map/RiskMap';
+import { DisasterCommandSummary } from '../components/map/DisasterCommandSummary';
 import { useApp } from '../context/AppContext';
-import { MONITORED_STATIONS, RISK_ZONES, SAFE_ZONES } from '../utils/constants';
-import { MonitoringStation } from '../types/map';
+import { MONITORED_STATIONS } from '../utils/constants';
+import {
+  MonitoringStation,
+  DisasterIncident,
+  RainfallStationTelemetry,
+  WaterBodyTelemetry,
+  EmergencyInfrastructureItem,
+  CriticalInfrastructureItem,
+  SensorNodeItem,
+  PopulationVulnerabilityItem,
+  CommandSummaryStats,
+  DisasterMapLayersState,
+  DEFAULT_MAP_LAYERS,
+} from '../types/map';
 import { RiskBadge } from '../components/common/RiskBadge';
 import { SearchedLocationBanner } from '../components/common/SearchedLocationBanner';
+import { mapService } from '../services/mapService';
 import {
   MapPin,
   Search,
-  Layers,
   Shield,
-  CloudRain,
-  Mountain,
-  Droplets,
-  Trees,
-  Crosshair,
   ArrowRight,
+  Radio,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { usePrediction } from '../context/PredictionContext';
 
 export const RiskMapPage: React.FC = () => {
   const {
+    activeLocation,
     selectedStation,
-    setSelectedStation,
+    selectTelemetryStation,
     searchedLocation,
     clearSearchedLocation,
+    setMapCenter,
   } = useApp();
   const { setFormValues } = usePrediction();
   const navigate = useNavigate();
+
   const [filterRisk, setFilterRisk] = useState<string>('ALL');
   const [stationListSearch, setStationListSearch] = useState<string>('');
+  const [activeLayers, setActiveLayers] = useState<DisasterMapLayersState>(DEFAULT_MAP_LAYERS);
+  const [loadingTelemetry, setLoadingTelemetry] = useState<boolean>(false);
+
+  // Disaster Management GIS State
+  const [incidents, setIncidents] = useState<DisasterIncident[]>([]);
+  const [rainfallStations, setRainfallStations] = useState<RainfallStationTelemetry[]>([]);
+  const [waterBodies, setWaterBodies] = useState<WaterBodyTelemetry[]>([]);
+  const [emergencyInfra, setEmergencyInfra] = useState<EmergencyInfrastructureItem[]>([]);
+  const [criticalInfra, setCriticalInfra] = useState<CriticalInfrastructureItem[]>([]);
+  const [sensorNodes, setSensorNodes] = useState<SensorNodeItem[]>([]);
+  const [vulnerabilityZones, setVulnerabilityZones] = useState<PopulationVulnerabilityItem[]>([]);
+  const [commandStats, setCommandStats] = useState<CommandSummaryStats>({
+    active_incidents: 12,
+    critical_zones: 4,
+    high_risk_zones: 8,
+    active_alerts: 6,
+    sensors_online_pct: 94,
+    safe_shelters: 7,
+    blocked_roads: 3,
+    geo_filtered_radius_km: 120,
+  });
+
+  const activeLat = activeLocation.lat;
+  const activeLng = activeLocation.lng;
+  const activeLocationName = activeLocation.displayName;
+
+  // Fetch geographic disaster management context whenever active location coordinates change
+  const fetchDisasterContext = useCallback(async (lat: number, lng: number) => {
+    setLoadingTelemetry(true);
+    try {
+      const data = await mapService.getDisasterMapContext(lat, lng, 120);
+      setCommandStats(data.summary);
+      setIncidents(data.incidents || []);
+      setRainfallStations(data.rainfall_stations || []);
+      setWaterBodies(data.water_bodies || []);
+      setEmergencyInfra(data.emergency_infrastructure || []);
+      setCriticalInfra(data.critical_infrastructure || []);
+      setSensorNodes(data.sensors || []);
+      setVulnerabilityZones(data.vulnerability_zones || []);
+    } catch (err) {
+      console.error('Failed to load disaster context', err);
+    } finally {
+      setLoadingTelemetry(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchDisasterContext(activeLat, activeLng);
+  }, [activeLat, activeLng, fetchDisasterContext]);
 
   const filteredStations = MONITORED_STATIONS.filter((s) => {
     const matchesRisk = filterRisk === 'ALL' || s.riskLevel === filterRisk;
@@ -42,13 +103,11 @@ export const RiskMapPage: React.FC = () => {
   });
 
   const handleStationClick = (station: MonitoringStation) => {
-    setSelectedStation(station);
-    clearSearchedLocation();
+    selectTelemetryStation(station);
   };
 
   const handleRunPrediction = (station: MonitoringStation) => {
-    setSelectedStation(station);
-    clearSearchedLocation();
+    selectTelemetryStation(station);
     setFormValues({
       Rainfall_mm: station.parameters.rainfall_mm,
       Slope_Angle: station.parameters.slope_angle,
@@ -62,18 +121,18 @@ export const RiskMapPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-slate-200">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-2 border-b border-slate-200">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <MapPin className="w-5 h-5 text-orange-600" />
+          <div className="flex items-center gap-2 mb-0.5">
+            <Shield className="w-5 h-5 text-orange-600" />
             <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 tracking-tight">
-              Interactive Geospatial Risk & Terrain Map
+              Disaster Management Command & Risk Map
             </h1>
           </div>
           <p className="text-xs md:text-sm text-slate-500 font-medium">
-            Multi-layered GIS mapping of slope instability, hydrological features, and safe zones
+            Multi-layered GIS tactical command interface for hazards, weather telemetry, water levels, and emergency response
           </p>
         </div>
 
@@ -103,22 +162,40 @@ export const RiskMapPage: React.FC = () => {
         />
       )}
 
+      {/* Disaster Command Summary Stats Strip */}
+      <DisasterCommandSummary
+        stats={commandStats}
+        locationName={activeLocationName}
+        loading={loadingTelemetry}
+        onRefresh={() => fetchDisasterContext(activeLat, activeLng)}
+      />
+
       {/* Main Grid: Map (8 cols) + Stations List (4 cols) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* Map Container */}
-        <div className="lg:col-span-8 bg-white rounded-2xl border border-slate-200 p-4 shadow-xs flex flex-col">
+        <div className="lg:col-span-8 bg-white rounded-2xl border border-slate-200 p-3 shadow-xs flex flex-col">
           <RiskMap
-            height="620px"
+            height="640px"
+            center={[activeLat, activeLng]}
             stations={filteredStations}
-            selectedStationId={selectedStation.id}
+            incidents={incidents}
+            rainfallStations={rainfallStations}
+            waterBodies={waterBodies}
+            emergencyInfrastructure={emergencyInfra}
+            criticalInfrastructure={criticalInfra}
+            sensors={sensorNodes}
+            vulnerabilityZones={vulnerabilityZones}
+            selectedStationId={selectedStation ? selectedStation.id : undefined}
             onStationSelect={handleStationClick}
+            activeLayers={activeLayers}
+            onLayersChange={setActiveLayers}
           />
         </div>
 
-        {/* Stations Sidebar (4 cols) */}
-        <div className="lg:col-span-4 space-y-4">
+        {/* Tactical Telemetry Sidebar (4 cols) */}
+        <div className="lg:col-span-4 space-y-3.5">
           {/* Search Box */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs space-y-3">
+          <div className="bg-white rounded-2xl border border-slate-200 p-3.5 shadow-xs space-y-2.5">
             <div className="relative">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
@@ -126,36 +203,39 @@ export const RiskMapPage: React.FC = () => {
                 value={stationListSearch}
                 onChange={(e) => setStationListSearch(e.target.value)}
                 placeholder="Filter sensor stations by name, state..."
-                className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+                className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/20 font-medium"
               />
             </div>
 
             <div className="flex items-center justify-between text-xs text-slate-500 px-1">
               <span>Showing <strong>{filteredStations.length}</strong> active sensor nodes</span>
-              <span className="font-mono text-[11px]">Real-time Telemetry</span>
+              <span className="font-mono text-[11px] text-emerald-600 font-bold flex items-center gap-1">
+                <Radio className="w-3 h-3 text-emerald-500" />
+                Live Telemetry
+              </span>
             </div>
           </div>
 
           {/* List of Stations */}
-          <div className="space-y-2.5 max-h-[520px] overflow-y-auto pr-1">
+          <div className="space-y-2.5 max-h-[530px] overflow-y-auto pr-1 custom-scrollbar">
             {filteredStations.map((stn) => {
-              const isSelected = selectedStation.id === stn.id && !searchedLocation;
+              const isSelected = selectedStation && selectedStation.id === stn.id;
               return (
                 <div
                   key={stn.id}
                   onClick={() => handleStationClick(stn)}
-                  className={`p-4 rounded-2xl border transition-all cursor-pointer ${
+                  className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${
                     isSelected
-                      ? 'bg-orange-50/70 border-orange-400 ring-2 ring-orange-400/20 shadow-xs'
+                      ? 'bg-orange-50/80 border-orange-400 ring-2 ring-orange-400/20 shadow-xs'
                       : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                   }`}
                 >
-                  <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="flex items-start justify-between gap-2 mb-1.5">
                     <div>
                       <h4 className="font-bold text-xs text-slate-900 leading-tight">
                         {stn.name}
                       </h4>
-                      <p className="text-[11px] text-slate-500">
+                      <p className="text-[11px] text-slate-500 font-medium">
                         {stn.region}, {stn.state}
                       </p>
                     </div>
@@ -163,11 +243,11 @@ export const RiskMapPage: React.FC = () => {
                   </div>
 
                   {/* Environmental Snapshot */}
-                  <div className="grid grid-cols-2 gap-2 text-[11px] my-2 bg-slate-50/80 p-2 rounded-lg border border-slate-100 font-mono">
-                    <span className="text-slate-600">Rain: <strong>{stn.parameters.rainfall_mm}mm</strong></span>
-                    <span className="text-slate-600">Slope: <strong>{stn.parameters.slope_angle}°</strong></span>
-                    <span className="text-slate-600">Soil: <strong>{stn.parameters.soil_saturation}%</strong></span>
-                    <span className="text-slate-600">Type: <strong>{stn.parameters.soil_type}</strong></span>
+                  <div className="grid grid-cols-2 gap-1.5 text-[11px] my-2 bg-slate-50/90 p-2 rounded-lg border border-slate-100 font-mono">
+                    <span className="text-slate-600">Rain: <strong className="text-slate-900">{stn.parameters.rainfall_mm}mm</strong></span>
+                    <span className="text-slate-600">Slope: <strong className="text-slate-900">{stn.parameters.slope_angle}°</strong></span>
+                    <span className="text-slate-600">Soil: <strong className="text-slate-900">{stn.parameters.soil_saturation}%</strong></span>
+                    <span className="text-slate-600">Type: <strong className="text-slate-900">{stn.parameters.soil_type}</strong></span>
                   </div>
 
                   {/* Action Link */}
@@ -176,7 +256,7 @@ export const RiskMapPage: React.FC = () => {
                       e.stopPropagation();
                       handleRunPrediction(stn);
                     }}
-                    className="w-full py-1.5 px-3 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors mt-2"
+                    className="w-full py-1.5 px-3 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors mt-1.5 shadow-2xs"
                   >
                     <span>Analyze in AI Predictor</span>
                     <ArrowRight className="w-3.5 h-3.5" />

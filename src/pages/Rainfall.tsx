@@ -10,8 +10,10 @@ import { MONITORED_STATIONS } from '../utils/constants';
 import { CloudRain, Droplets, MapPin, AlertTriangle, RefreshCw } from 'lucide-react';
 
 export const RainfallPage: React.FC = () => {
-  const { selectedStation, setSelectedStation } = useApp();
-  const { data, isLoading, error } = useRainfall(selectedStation.id);
+  const { selectedStation, setSelectedStation, activeLocation } = useApp();
+  const currentStationId = selectedStation?.id || MONITORED_STATIONS[0].id;
+  const currentStationName = selectedStation?.name || activeLocation.name;
+  const { data, isLoading, error } = useRainfall(currentStationId);
   const [timeRange, setTimeRange] = useState<'24h' | '7d' | '30d'>('24h');
 
   if (isLoading) {
@@ -43,7 +45,7 @@ export const RainfallPage: React.FC = () => {
           <MapPin className="w-4 h-4 text-orange-600" />
           <div className="text-xs">
             <span className="text-slate-400">Station: </span>
-            <strong className="text-slate-900 font-bold">{selectedStation.name}</strong>
+            <strong className="text-slate-900 font-bold">{currentStationName}</strong>
           </div>
         </div>
       </div>
@@ -88,7 +90,7 @@ export const RainfallPage: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {MONITORED_STATIONS.map((stn) => {
-                const isCurrent = stn.id === selectedStation.id;
+                const isCurrent = stn.id === currentStationId;
                 return (
                   <tr
                     key={stn.id}

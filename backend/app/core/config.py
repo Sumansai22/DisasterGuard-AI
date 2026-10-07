@@ -3,16 +3,23 @@ from dataclasses import dataclass
 from pathlib import Path
 from dotenv import load_dotenv
 
-env_path = Path(__file__).resolve().parent.parent.parent / ".env"
-if env_path.exists():
-    load_dotenv(dotenv_path=env_path)
+# Search for .env in current directory, backend directory, and root workspace
+for candidate in [
+    Path(".env"),
+    Path("backend/.env"),
+    Path(__file__).resolve().parent.parent.parent / ".env",
+    Path(__file__).resolve().parent.parent.parent.parent / ".env",
+]:
+    if candidate.exists():
+        load_dotenv(dotenv_path=candidate)
+
 load_dotenv()
 
 @dataclass
 class Settings:
     database_url: str = os.getenv(
         "DATABASE_URL",
-        "postgresql://postgres:postgres@localhost:5432/landslide_guard",
+        "sqlite:///./landslide_guard.db",
     )
     model_path: str = os.getenv("MODEL_PATH", "ml_models/landslide_model.pkl")
     cors_origins: list[str] = None
@@ -21,10 +28,36 @@ class Settings:
     elevated_max: float = float(os.getenv("ELEVATED_MAX", "0.75"))
     high_max: float = float(os.getenv("HIGH_MAX", "1.00"))
     gemini_api_key: str = os.getenv("GEMINI_API_KEY", "")
-    gemini_model: str = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
+    gemini_model: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    google_routes_api_key: str = os.getenv("GOOGLE_ROUTES_API_KEY", "")
 
     def __post_init__(self):
-        raw = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000")
-        self.cors_origins = [x.strip() for x in raw.split(",") if x.strip()]
+        origins = [
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            "http://localhost:8000",
+            "http://127.0.0.1:8000",
+            "http://localhost:8008",
+            "http://127.0.0.1:8008",
+        ]
+        
+        frontend_url = os.getenv("FRONTEND_URL", "").strip()
+        if frontend_url:
+            for item in frontend_url.split(","):
+                cleaned = item.strip().rstrip("/")
+                if cleaned and cleaned not in origins:
+                    origins.append(cleaned)
+
+        raw_cors = os.getenv("CORS_ORIGINS", "").strip()
+        if raw_cors:
+            for item in raw_cors.split(","):
+                cleaned = item.strip().rstrip("/")
+                if cleaned and cleaned not in origins:
+                    origins.append(cleaned)
+
+        self.cors_origins = origins
 
 settings = Settings()
+

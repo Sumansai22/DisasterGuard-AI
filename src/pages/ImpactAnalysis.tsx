@@ -10,16 +10,20 @@ import { Building2, Navigation, ArrowRight, ShieldCheck, MapPin } from 'lucide-r
 import { Link } from 'react-router-dom';
 
 export const ImpactAnalysisPage: React.FC = () => {
-  const { selectedStation } = useApp();
+  const { selectedStation, activeLocation } = useApp();
   const [data, setData] = useState<ExposureMetrics | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  const activeStationId = selectedStation?.id || 'munnar-zone-a';
+  const centerLat = selectedStation?.coordinates.lat ?? activeLocation.lat;
+  const centerLng = selectedStation?.coordinates.lng ?? activeLocation.lng;
 
   useEffect(() => {
     let mounted = true;
     async function loadExposure() {
       setIsLoading(true);
       try {
-        const result = await exposureService.getExposureData(selectedStation.id);
+        const result = await exposureService.getExposureData(activeStationId);
         if (mounted) setData(result);
       } catch (err) {
         console.error(err);
@@ -29,7 +33,7 @@ export const ImpactAnalysisPage: React.FC = () => {
     }
     loadExposure();
     return () => { mounted = false; };
-  }, [selectedStation.id]);
+  }, [activeStationId]);
 
   if (isLoading || !data) {
     return <LoadingSpinner message="Calculating Geospatial Population & Infrastructure Exposure Matrix..." fullHeight />;
@@ -81,10 +85,10 @@ export const ImpactAnalysisPage: React.FC = () => {
 
           <div className="flex-1 min-h-[460px]">
             <RiskMap
-              center={[selectedStation.coordinates.lat, selectedStation.coordinates.lng]}
+              center={[centerLat, centerLng]}
               zoom={13}
               height="480px"
-              selectedStationId={selectedStation.id}
+              selectedStationId={selectedStation?.id}
             />
           </div>
         </div>

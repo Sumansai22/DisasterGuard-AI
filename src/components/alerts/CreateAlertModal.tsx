@@ -23,7 +23,7 @@ export const CreateAlertModal: React.FC<CreateAlertModalProps> = ({
   const [locationName, setLocationName] = useState(initialLocation);
   const [riskScore, setRiskScore] = useState<number>(initialScore);
   const [message, setMessage] = useState(
-    'Heavy continuous rainfall exceeding 120mm/24h on steep saturated soil slope. Severe debris flow hazard detected by LandslideGuard AI.'
+    'Heavy continuous rainfall exceeding 120mm/24h on steep saturated soil slope. Severe debris flow hazard detected by DisasterGuard AI.'
   );
   const [recommendedAction, setRecommendedAction] = useState(
     'Initiate immediate phased evacuation to Higher Ground Relief Centre. Halt uphill vehicular traffic.'

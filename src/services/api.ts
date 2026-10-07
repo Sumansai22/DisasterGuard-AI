@@ -1,20 +1,35 @@
 import axios, { AxiosError } from 'axios';
 
-// Create base Axios instance
+// Unified API Base URL configuration for DisasterGuard AI
+const rawBaseUrl = (
+  import.meta.env.VITE_API_BASE_URL ||
+  import.meta.env.VITE_API_URL ||
+  ''
+).trim().replace(/\/+$/, '');
+
+export const API_BASE_URL = rawBaseUrl;
+
+// Ensure final baseURL ends with '/api' if a remote origin is specified, or defaults to '/api' for proxying
+const finalBaseURL = rawBaseUrl
+  ? (rawBaseUrl.endsWith('/api') ? rawBaseUrl : `${rawBaseUrl}/api`)
+  : '/api';
+
 export const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
-  timeout: 8000,
+  baseURL: finalBaseURL,
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   },
 });
 
-// Request Interceptor
+// Request Interceptor: Add version header and prevent duplicate /api/api paths
 apiClient.interceptors.request.use(
   (config) => {
-    // Add any auth tokens or telemetry headers if needed
-    config.headers['X-Client-Version'] = 'LandslideGuard-AI-2026';
+    config.headers['X-Client-Version'] = 'DisasterGuard-AI-2026';
+    if (config.url && config.url.startsWith('/api/')) {
+      config.url = config.url.substring(4); // trim leading '/api' since baseURL ends with /api
+    }
     return config;
   },
   (error) => Promise.reject(error)
@@ -24,8 +39,8 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
-    // Standardized error handling without leaking raw stack traces to the user
-    console.warn('[API Client Network Notice]:', error.message);
+    // Non-intrusive logging for resilient frontend fallback operation
+    console.warn('[DisasterGuard API Network Notice]:', error.message);
     return Promise.reject(error);
   }
 );

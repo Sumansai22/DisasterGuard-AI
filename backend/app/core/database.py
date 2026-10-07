@@ -6,7 +6,12 @@ from app.core.config import settings
 Base = declarative_base()
 
 def get_engine():
-    db_url = settings.database_url
+    db_url = settings.database_url or "sqlite:///./landslide_guard.db"
+    
+    # Render and Supabase often supply postgres:// which SQLAlchemy 2.0 requires as postgresql://
+    if db_url.startswith("postgres://"):
+        db_url = db_url.replace("postgres://", "postgresql://", 1)
+
     try:
         if db_url.startswith("postgresql"):
             eng = create_engine(db_url, pool_pre_ping=True)
@@ -14,14 +19,20 @@ def get_engine():
                 pass
             return eng
         else:
-            return create_engine(db_url, pool_pre_ping=True)
+            return create_engine(db_url, connect_args={"check_same_thread": False})
     except Exception as exc:
-        print(f"Notice: PostgreSQL connection unavailable ({exc}). Using local SQLite database (sqlite:///./landslide_guard.db).")
+        print(f"Notice: Primary database unavailable ({exc}). Using local SQLite database (sqlite:///./landslide_guard.db).")
         sqlite_url = "sqlite:///./landslide_guard.db"
         return create_engine(sqlite_url, connect_args={"check_same_thread": False})
 
 engine = get_engine()
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
+
+try:
+    from app.models import Station, Prediction, Alert, WeatherData, AuditLog, LandScanResult
+    Base.metadata.create_all(bind=engine)
+except Exception:
+    pass
 
 def init_db():
     from app.models import Station, Prediction, Alert, WeatherData, AuditLog, LandScanResult

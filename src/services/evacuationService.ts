@@ -1,77 +1,97 @@
 import { apiClient } from './api';
-import { SafeZone, EvacuationRoutePlan } from '../types/evacuation';
-import { SAFE_ZONES } from '../utils/constants';
-
-let safeZonesState = [...SAFE_ZONES];
+import { SafeZone, EvacuationRoutePlan, HazardZoneInfo, TravelMode, PlaceSearchResult, LocationPointData } from '../types/evacuation';
 
 export const evacuationService = {
-  async getSafeZones(): Promise<SafeZone[]> {
+  /**
+   * Search real places and addresses with coordinates via backend geocoding endpoint
+   */
+  async searchPlaces(query: string): Promise<PlaceSearchResult[]> {
+    if (!query || query.trim().length < 2) return [];
     try {
-      const response = await apiClient.get<SafeZone[]>('/safe-zones');
-      return response.data;
-    } catch (error) {
-      return safeZonesState;
+      const response = await apiClient.get<{ results: PlaceSearchResult[] }>('/evacuation/search-place', {
+        params: { q: query.trim() },
+      });
+      return response.data.results || [];
+    } catch (err) {
+      console.warn('[evacuationService] Search place fallback note:', err);
+      return [];
     }
   },
 
-  async calculateRoute(originLat: number, originLng: number, safeZoneId: string): Promise<EvacuationRoutePlan> {
+  /**
+   * Fetches location-filtered emergency safe zones relative to given coordinates
+   */
+  async getSafeZones(latitude?: number, longitude?: number, radiusKm: number = 120): Promise<SafeZone[]> {
     try {
-      const response = await apiClient.post<EvacuationRoutePlan>('/evacuation-route', {
-        originLat,
-        originLng,
-        safeZoneId
-      });
-      return response.data;
-    } catch (error) {
-      // Simulate shortest-path obstacle-avoiding evacuation route
-      const safeZone = safeZonesState.find(s => s.id === safeZoneId) || safeZonesState[0];
-      
-      // Build realistic waypoints between origin and safe zone
-      const latDiff = safeZone.location.lat - originLat;
-      const lngDiff = safeZone.location.lng - originLng;
-
-      const waypoints: [number, number][] = [
-        [originLat, originLng],
-        [originLat + latDiff * 0.25 + 0.003, originLng + lngDiff * 0.2 - 0.002],
-        [originLat + latDiff * 0.55 - 0.002, originLng + lngDiff * 0.6 + 0.003],
-        [originLat + latDiff * 0.85 + 0.001, originLng + lngDiff * 0.85 + 0.001],
-        [safeZone.location.lat, safeZone.location.lng]
-      ];
-
-      return {
-        id: `ROUTE-SIM-${Date.now()}`,
-        affectedZoneId: 'ACTIVE-ZONE',
-        affectedZoneName: 'Origin Monitoring Zone',
-        originCoordinates: { lat: originLat, lng: originLng },
-        targetSafeZone: safeZone,
-        distanceKm: 3.2,
-        estimatedTimeMin: 9,
-        routeSafety: 'SAFE',
-        waypoints,
-        steps: [
-          {
-            stepNumber: 1,
-            instruction: 'Head North-West away from active slope drainage channel towards Ridge Road.',
-            distanceMeters: 600,
-            status: 'SAFE'
-          },
-          {
-            stepNumber: 2,
-            instruction: 'Turn right at the tea factory junction onto reinforced State Highway bypass.',
-            distanceMeters: 1400,
-            hazardNote: 'Avoid lower shoulder near stream bank.',
-            status: 'CAUTION'
-          },
-          {
-            stepNumber: 3,
-            instruction: 'Proceed straight along the elevated plateau pass directly into the relief camp gates.',
-            distanceMeters: 1200,
-            status: 'SAFE'
-          }
-        ],
-        isSimulation: true,
-        generatedAt: new Date().toISOString()
-      };
+      const params: Record<string, any> = { radius_km: radiusKm };
+      if (latitude !== undefined && longitude !== undefined) {
+        params.latitude = latitude;
+        params.longitude = longitude;
+      }
+      const response = await apiClient.get<{ shelters: SafeZone[]; results?: SafeZone[] }>('/evacuation/shelters', { params });
+      return response.data.shelters || response.data.results || [];
+    } catch (err) {
+      console.warn('[evacuationService] Error fetching location-based shelters:', err);
+      return [];
     }
-  }
+  },
+
+  /**
+   * Fetches active landslide hazard zones and buffer epicenters from the backend
+   */
+  async getHazardZones(): Promise<HazardZoneInfo[]> {
+    try {
+      const response = await apiClient.get<HazardZoneInfo[]>('/evacuation/hazard-zones');
+      return response.data;
+    } catch {
+      return [];
+    }
+  },
+
+  /**
+   * Computes multi-modal road/pathway evacuation routes between FROM and TO
+   */
+  async calculateRoute(params: {
+    origin: LocationPointData;
+    destination?: LocationPointData;
+    safeZoneId?: string;
+    safehouse_id?: string;
+    travelMode?: TravelMode;
+    travel_mode?: TravelMode;
+  }): Promise<EvacuationRoutePlan> {
+    const mode = params.travelMode || params.travel_mode || 'DRIVE';
+    const payload: Record<string, any> = {
+      origin: {
+        name: params.origin.name,
+        latitude: params.origin.latitude,
+        longitude: params.origin.longitude,
+        formatted_address: params.origin.formatted_address || params.origin.name,
+      },
+      originLat: params.origin.latitude,
+      originLng: params.origin.longitude,
+      originName: params.origin.name,
+      travel_mode: mode,
+      travelMode: mode,
+    };
+
+    if (params.destination) {
+      payload.destination = {
+        name: params.destination.name,
+        latitude: params.destination.latitude,
+        longitude: params.destination.longitude,
+        formatted_address: params.destination.formatted_address || params.destination.name,
+      };
+      payload.destLat = params.destination.latitude;
+      payload.destLng = params.destination.longitude;
+      payload.destName = params.destination.name;
+    }
+
+    if (params.safeZoneId) {
+      payload.safehouse_id = params.safeZoneId;
+      payload.safeZoneId = params.safeZoneId;
+    }
+
+    const response = await apiClient.post<EvacuationRoutePlan>('/evacuation/routes', payload);
+    return response.data;
+  },
 };

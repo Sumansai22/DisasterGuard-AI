@@ -22,9 +22,23 @@ class MLService:
         self.feature_names = MODEL_FEATURES
 
     def load(self):
-        if not self.model_path.exists():
+        candidate_paths = [
+            self.model_path,
+            Path("backend") / self.model_path,
+            Path("backend/ml_models/landslide_model.pkl"),
+            Path("ml_models/landslide_model.pkl"),
+            Path(__file__).resolve().parent.parent.parent / "ml_models" / "landslide_model.pkl",
+        ]
+        resolved = None
+        for p in candidate_paths:
+            if p.exists():
+                resolved = p
+                break
+
+        if not resolved:
             return False
-        self.model = joblib.load(self.model_path)
+
+        self.model = joblib.load(resolved)
         detected = getattr(self.model, "feature_names_in_", None)
         if detected is not None:
             detected = list(detected)

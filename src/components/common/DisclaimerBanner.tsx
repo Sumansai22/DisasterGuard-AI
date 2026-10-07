@@ -12,7 +12,7 @@ export const DisclaimerBanner: React.FC = () => {
         <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0" />
         <span>
           <strong className="text-amber-300 font-semibold">Decision-Support Notice:</strong>{' '}
-          LandslideGuard AI provides estimated landslide probabilities and early-warning indicators for situational awareness. Tactical evacuation decisions must be verified with National Disaster Management Authority (NDMA) & state authorities.
+          DisasterGuard AI provides estimated multi-hazard disaster probabilities and early-warning indicators for situational awareness. Tactical evacuation decisions must be verified with National Disaster Management Authority (NDMA) & state authorities.
         </span>
       </div>
       <button

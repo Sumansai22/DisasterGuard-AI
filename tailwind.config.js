@@ -26,7 +26,20 @@ export default {
         }
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+        sans: [
+          'Inter',
+          'Noto Sans',
+          'Noto Sans Telugu',
+          'Noto Sans Devanagari',
+          'Noto Sans Tamil',
+          'Noto Sans Malayalam',
+          'Noto Sans Kannada',
+          'system-ui',
+          '-apple-system',
+          'Segoe UI',
+          'Roboto',
+          'sans-serif',
+        ],
         mono: ['JetBrains Mono', 'Fira Code', 'monospace']
       },
       boxShadow: {

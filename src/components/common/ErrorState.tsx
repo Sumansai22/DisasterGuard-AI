@@ -10,7 +10,7 @@ interface ErrorStateProps {
 
 export const ErrorState: React.FC<ErrorStateProps> = ({
   title = 'Service Temporarily Unavailable',
-  message = 'LandslideGuard prediction backend is currently unreachable. Operating in local decision-support fallback mode.',
+  message = 'DisasterGuard prediction backend is currently unreachable. Operating in local decision-support fallback mode.',
   onRetry,
   compact = false,
 }) => {
