@@ -82,10 +82,11 @@ export const SystemStatusIndicator: React.FC<{ variant?: 'badge' | 'full' }> = (
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs transition-colors"
-        title="View Subsystem Health"
+        className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
+        title="System Operational — View Subsystem Health"
+        aria-label="System Operational — View Subsystem Health"
       >
-        <span className="relative flex h-2 w-2">
+        <span className="relative flex h-2 w-2 shrink-0">
           {allOperational ? (
             <>
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -95,8 +96,9 @@ export const SystemStatusIndicator: React.FC<{ variant?: 'badge' | 'full' }> = (
             <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
           )}
         </span>
-        <span className="hidden sm:inline">System Operational</span>
-        <ChevronDown className="w-3 h-3 text-slate-400" />
+        <span className="hidden 2xl:inline whitespace-nowrap">System Operational</span>
+        <span className="hidden xl:inline 2xl:hidden whitespace-nowrap">Operational</span>
+        <ChevronDown className="w-3 h-3 text-slate-400 shrink-0" />
       </button>
 
       {isOpen && (

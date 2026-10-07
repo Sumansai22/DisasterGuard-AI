@@ -212,7 +212,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="w-8 h-8 rounded-lg bg-slate-800 text-slate-200 flex items-center justify-center font-bold text-xs border border-slate-700">
               <User className="w-4 h-4 text-slate-300" />
             </div>
-            {!collapsed && (
+            {(!collapsed || mobileOpen) && (
               <div className="flex flex-col min-w-0">
                 <span className="text-xs font-bold text-white truncate leading-none">
                   Officer S. Sharma

@@ -41,8 +41,8 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
         className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-800 text-xs font-bold transition-all shadow-2xs cursor-pointer"
       >
         <Globe className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-        <span className="font-semibold text-slate-700 hidden sm:inline truncate max-w-[90px]">{currentLanguageOption.nativeName}</span>
-        <span className="font-bold text-slate-700 sm:hidden uppercase font-mono text-[11px]">{currentLanguageOption.code}</span>
+        <span className="font-semibold text-slate-700 hidden md:inline truncate max-w-[75px] xl:max-w-[95px]">{currentLanguageOption.nativeName}</span>
+        <span className="font-bold text-slate-700 md:hidden uppercase font-mono text-[11px]">{currentLanguageOption.code}</span>
         <ChevronDown className={`w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 

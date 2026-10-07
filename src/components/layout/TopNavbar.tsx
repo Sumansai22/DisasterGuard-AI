@@ -5,15 +5,12 @@ import {
   MapPin,
   Bell,
   ChevronDown,
-  User,
   Shield,
   Radio,
   X,
   Loader2,
   CheckCircle2,
-  Compass,
   AlertCircle,
-  Activity,
   Globe,
   AlertOctagon,
 } from 'lucide-react';
@@ -24,9 +21,9 @@ import { SystemStatusIndicator } from '../common/SystemStatus';
 import { EmergencySOSModal } from '../common/EmergencySOSModal';
 import { LanguageSelector } from '../common/LanguageSelector';
 import { useTranslation } from '../../i18n';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { geocodingService } from '../../services/geocodingService';
-import { SearchedLocation, MonitoringStation } from '../../types/map';
+import { SearchedLocation } from '../../types/map';
 import { HazardType, HAZARD_PROFILES } from '../../types/multiHazard';
 
 interface TopNavbarProps {
@@ -44,7 +41,6 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
 }) => {
   const {
     activeLocation,
-    selectedStation,
     selectedHazardType,
     setSelectedHazardType,
     selectGlobalLocation,
@@ -54,7 +50,6 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
   } = useApp();
 
   const { t } = useTranslation();
-  const navigate = useNavigate();
 
   const [showStationDropdown, setShowStationDropdown] = useState(false);
   const [showHazardDropdown, setShowHazardDropdown] = useState(false);
@@ -86,7 +81,6 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
       return;
     }
 
-    // If query matches currently active location name, don't re-trigger search
     if (activeLocation && activeLocation.name.toLowerCase() === trimmed.toLowerCase()) {
       return;
     }
@@ -148,377 +142,456 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-20 h-16 bg-white border-b border-slate-200 px-3 sm:px-4 md:px-6 flex items-center justify-between shadow-2xs w-full max-w-full min-w-0">
-      {/* Left: Sidebar Toggle, Active Geographic Location Indicator & Global Place Search */}
-      <div className="flex items-center gap-2 sm:gap-3 md:gap-4 flex-1 max-w-3xl min-w-0">
-        <button
-          onClick={() => {
-            if (window.innerWidth < 768) {
-              setMobileDrawerOpen?.(!mobileDrawerOpen);
-            } else {
-              setCollapsed(!collapsed);
-            }
-          }}
-          className="p-2 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors shrink-0"
-          title="Toggle Navigation Sidebar"
-          aria-label="Toggle Navigation Sidebar"
-        >
-          <Menu className="w-5 h-5" />
-        </button>
-
-        {/* ACTIVE GEOGRAPHIC LOCATION INDICATOR & TELEMETRY STATION SELECTOR */}
-        <div className="relative hidden lg:block">
+    <header className="sticky top-0 z-30 bg-white border-b border-slate-200 shadow-2xs w-full max-w-full min-w-0">
+      {/* Primary Navigation Row */}
+      <div className="h-14 sm:h-16 px-2 sm:px-3 md:px-4 lg:px-6 flex items-center justify-between gap-1.5 sm:gap-2 md:gap-3 w-full min-w-0 box-border">
+        {/* ========================================================================= */}
+        {/* LEFT SECTION: Hamburger, Brand (mobile), Location & Hazard Controls       */}
+        {/* ========================================================================= */}
+        <div className="flex items-center gap-1.5 sm:gap-2 md:gap-2.5 flex-1 min-w-0 max-w-[65%] sm:max-w-[60%] lg:max-w-[52%]">
+          {/* Hamburger Sidebar Trigger */}
           <button
-            onClick={() => setShowStationDropdown(!showStationDropdown)}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
-              activeLocation.isMonitored
-                ? 'border-orange-200 bg-orange-50/70 hover:bg-orange-100 text-orange-950'
-                : 'border-blue-200 bg-blue-50/70 hover:bg-blue-100 text-blue-950'
-            }`}
-            title="Active Geographic Location / Switch Telemetry Station"
+            onClick={() => {
+              if (window.innerWidth < 768) {
+                setMobileDrawerOpen?.(!mobileDrawerOpen);
+              } else {
+                setCollapsed(!collapsed);
+              }
+            }}
+            className="p-1.5 sm:p-2 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors shrink-0"
+            title="Toggle Navigation Sidebar"
+            aria-label="Toggle Navigation Sidebar"
           >
-            <MapPin className={`w-3.5 h-3.5 ${activeLocation.isMonitored ? 'text-orange-600' : 'text-blue-600'}`} />
-            <span className="truncate max-w-[170px] font-bold">
-              {activeLocation.name}
-            </span>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+            <Menu className="w-5 h-5" />
           </button>
 
-          {showStationDropdown && (
-            <>
-              <div
-                className="fixed inset-0 z-40"
-                onClick={() => setShowStationDropdown(false)}
-              />
-              <div className="absolute left-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-slate-200 py-2.5 z-50 animate-in fade-in zoom-in-95 duration-150 font-sans">
-                {/* Active Geographic Location Header */}
-                <div className="px-3.5 pb-2 mb-2 border-b border-slate-100">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-                    Active Geographic Location
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className={`p-1.5 rounded-md ${activeLocation.isMonitored ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>
-                      {activeLocation.isMonitored ? <Radio className="w-3.5 h-3.5" /> : <Globe className="w-3.5 h-3.5" />}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-bold text-xs text-slate-900 truncate">{activeLocation.name}</p>
-                      <p className="text-[10px] text-slate-500 truncate">{activeLocation.displayName}</p>
-                    </div>
-                  </div>
-                  {!activeLocation.isMonitored && nearestStn && (
-                    <div className="mt-2 p-1.5 rounded bg-slate-50 border border-slate-200 text-[10px] text-slate-600 font-mono">
-                      <span>Nearest Telemetry: <strong>{nearestStn.station.name}</strong> ({nearestStn.distance_km} km away)</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Telemetry Stations Section */}
-                <div className="px-3.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
-                  <span>Switch Telemetry Station</span>
-                  <span className="font-mono text-emerald-600">IoT Grid</span>
-                </div>
-
-                <div className="max-h-64 overflow-y-auto py-1">
-                  {MONITORED_STATIONS.map((stn) => {
-                    const isStationActive = activeLocation.isMonitored && activeLocation.name === stn.name;
-                    return (
-                      <button
-                        key={stn.id}
-                        onClick={() => {
-                          selectTelemetryStation(stn);
-                          setInputQuery('');
-                          setShowStationDropdown(false);
-                        }}
-                        className={`w-full text-left px-3.5 py-2 text-xs hover:bg-slate-50 flex items-center justify-between transition-colors ${
-                          isStationActive
-                            ? 'bg-orange-50 text-orange-950 font-bold border-l-3 border-orange-600'
-                            : 'text-slate-700'
-                        }`}
-                      >
-                        <div>
-                          <p className="font-bold text-xs">{stn.name}</p>
-                          <p className="text-[10px] text-slate-400">{stn.region}, {stn.state}</p>
-                        </div>
-                        <span
-                          className={`text-[10px] font-bold px-1.5 py-0.5 rounded font-mono ${
-                            stn.riskLevel === 'CRITICAL'
-                              ? 'bg-red-100 text-red-700'
-                              : stn.riskLevel === 'HIGH'
-                              ? 'bg-orange-100 text-orange-700'
-                              : 'bg-emerald-100 text-emerald-700'
-                          }`}
-                        >
-                          {stn.riskScore}/100
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* MULTI-HAZARD MODE SELECTOR PILL */}
-        <div className="relative hidden xl:block">
-          <button
-            onClick={() => setShowHazardDropdown(!showHazardDropdown)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-800 text-xs font-bold transition-all shadow-2xs"
-            title="Switch Disaster Hazard Assessment Mode"
-          >
-            <span>{HAZARD_PROFILES[selectedHazardType]?.emoji || '🌐'}</span>
-            <span className="truncate max-w-[130px]">
-              {HAZARD_PROFILES[selectedHazardType]?.shortName || 'All Hazards'}
+          {/* Mobile Brand Name */}
+          <div className="flex items-center gap-1.5 md:hidden min-w-0 truncate">
+            <div className="w-6 h-6 rounded-md bg-gradient-to-br from-orange-500 to-amber-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <Shield className="w-3.5 h-3.5" />
+            </div>
+            <span className="font-black text-xs text-slate-900 tracking-tight truncate hidden xs:inline">
+              DisasterGuard
             </span>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-          </button>
-
-          {showHazardDropdown && (
-            <>
-              <div
-                className="fixed inset-0 z-40"
-                onClick={() => setShowHazardDropdown(false)}
-              />
-              <div className="absolute left-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-slate-200 py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
-                <div className="px-3.5 pb-2 mb-1 border-b border-slate-100 flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                    Disaster Hazard Vectors
-                  </span>
-                  <span className="text-[10px] font-mono text-orange-600 font-bold">Multi-Hazard</span>
-                </div>
-
-                <div className="max-h-72 overflow-y-auto py-1">
-                  {(Object.keys(HAZARD_PROFILES) as HazardType[]).map((hzKey) => {
-                    const profile = HAZARD_PROFILES[hzKey];
-                    const isCurrent = selectedHazardType === hzKey;
-                    return (
-                      <button
-                        key={hzKey}
-                        onClick={() => {
-                          setSelectedHazardType(hzKey);
-                          setShowHazardDropdown(false);
-                        }}
-                        className={`w-full text-left px-3.5 py-2 hover:bg-slate-50 flex items-center justify-between gap-2 transition-colors ${
-                          isCurrent ? 'bg-orange-50/70 font-bold text-orange-950' : 'text-slate-700'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="text-base">{profile.emoji}</span>
-                          <div className="min-w-0">
-                            <p className="text-xs truncate">{profile.name}</p>
-                            <p className="text-[10px] text-slate-400 truncate">{profile.thresholdUnit}</p>
-                          </div>
-                        </div>
-                        {isCurrent && (
-                          <CheckCircle2 className="w-3.5 h-3.5 text-orange-600 shrink-0" />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Global Geocoding Search Bar (Macherla, Manali, Chennai, Hyderabad, etc.) */}
-        <div ref={searchContainerRef} className="relative flex-1 max-w-md">
-          <div className="relative flex items-center">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Search any city, town, village (e.g. Macherla, Manali)..."
-              value={inputQuery}
-              onChange={(e) => {
-                setInputQuery(e.target.value);
-                setShowSuggestionsDropdown(true);
-              }}
-              onKeyDown={handleKeyDown}
-              onFocus={() => {
-                if (suggestions.length > 0 || searchError) {
-                  setShowSuggestionsDropdown(true);
-                }
-              }}
-              className="w-full pl-9 pr-9 py-1.5 text-xs bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all font-medium placeholder:text-slate-400"
-            />
-
-            {/* Clear button or Spinner */}
-            {isSearching ? (
-              <Loader2 className="w-4 h-4 text-orange-600 animate-spin absolute right-3 top-1/2 -translate-y-1/2" />
-            ) : inputQuery.length > 0 ? (
-              <button
-                onClick={handleClear}
-                className="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-200 absolute right-2.5 top-1/2 -translate-y-1/2 transition-colors"
-                title="Clear Search"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            ) : null}
           </div>
 
-          {/* Autocomplete Suggestions Dropdown */}
-          {showSuggestionsDropdown && (inputQuery.trim().length >= 2 || suggestions.length > 0 || isSearching) && (
-            <div className="absolute left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-slate-200 py-2 z-50 animate-in fade-in zoom-in-95 duration-150 max-h-80 overflow-y-auto">
-              {isSearching && (
-                <div className="px-4 py-3 text-xs text-slate-500 flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 text-orange-600 animate-spin" />
-                  <span>Searching geographic locations...</span>
-                </div>
-              )}
+          {/* ACTIVE GEOGRAPHIC LOCATION INDICATOR & TELEMETRY STATION SELECTOR (Desktop/Tablet) */}
+          <div className="relative hidden md:block shrink-0">
+            <button
+              onClick={() => {
+                setShowStationDropdown(!showStationDropdown);
+                setShowHazardDropdown(false);
+              }}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
+                activeLocation.isMonitored
+                  ? 'border-orange-200 bg-orange-50/70 hover:bg-orange-100 text-orange-950'
+                  : 'border-blue-200 bg-blue-50/70 hover:bg-blue-100 text-blue-950'
+              }`}
+              title={`Active Geographic Location: ${activeLocation.name} (Click to Switch Station)`}
+              aria-label="Active Geographic Location"
+            >
+              <MapPin className={`w-3.5 h-3.5 shrink-0 ${activeLocation.isMonitored ? 'text-orange-600' : 'text-blue-600'}`} />
+              <span className="truncate max-w-[90px] lg:max-w-[130px] xl:max-w-[170px] font-bold">
+                {activeLocation.name}
+              </span>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            </button>
 
-              {!isSearching && suggestions.length > 0 && (
-                <div>
-                  <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 mb-1 flex items-center justify-between">
-                    <span>Geographic Places (Click or Press Enter)</span>
-                    <span className="font-mono">OpenStreetMap & GIS</span>
+            {showStationDropdown && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setShowStationDropdown(false)}
+                />
+                <div className="absolute left-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-slate-200 py-2.5 z-50 animate-in fade-in zoom-in-95 duration-150 font-sans">
+                  {/* Active Geographic Location Header */}
+                  <div className="px-3.5 pb-2 mb-2 border-b border-slate-100">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                      Active Geographic Location
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className={`p-1.5 rounded-md ${activeLocation.isMonitored ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>
+                        {activeLocation.isMonitored ? <Radio className="w-3.5 h-3.5" /> : <Globe className="w-3.5 h-3.5" />}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-bold text-xs text-slate-900 truncate">{activeLocation.name}</p>
+                        <p className="text-[10px] text-slate-500 truncate">{activeLocation.displayName}</p>
+                      </div>
+                    </div>
+                    {!activeLocation.isMonitored && nearestStn && (
+                      <div className="mt-2 p-1.5 rounded bg-slate-50 border border-slate-200 text-[10px] text-slate-600 font-mono">
+                        <span>Nearest Telemetry: <strong>{nearestStn.station.name}</strong> ({nearestStn.distance_km} km away)</span>
+                      </div>
+                    )}
                   </div>
 
-                  {suggestions.map((loc, idx) => (
-                    <button
-                      key={loc.placeId || idx}
-                      onClick={() => handleSelectSuggestion(loc)}
-                      className="w-full text-left px-3.5 py-2.5 hover:bg-slate-50 flex items-start justify-between gap-2.5 transition-colors border-b border-slate-100 last:border-0"
-                    >
-                      <div className="flex items-start gap-2.5 min-w-0">
-                        <div className={`p-1.5 rounded-lg shrink-0 mt-0.5 ${
-                          loc.isMonitored ? 'bg-orange-100 text-orange-700' : 'bg-blue-50 text-blue-600'
-                        }`}>
-                          <MapPin className="w-4 h-4" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="font-bold text-xs text-slate-900 truncate">
-                            {loc.name}
-                          </p>
-                          <p className="text-[11px] text-slate-500 line-clamp-1">
-                            {loc.displayName || loc.address}
-                          </p>
-                        </div>
-                      </div>
+                  {/* Telemetry Stations Section */}
+                  <div className="px-3.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
+                    <span>Switch Telemetry Station</span>
+                    <span className="font-mono text-emerald-600">IoT Grid</span>
+                  </div>
 
-                      <div className="shrink-0 text-right">
-                        {loc.isMonitored ? (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-800 border border-orange-200">
-                            Telemetry Station ({loc.monitoredStation?.riskScore}/100)
+                  <div className="max-h-64 overflow-y-auto py-1">
+                    {MONITORED_STATIONS.map((stn) => {
+                      const isStationActive = activeLocation.isMonitored && activeLocation.name === stn.name;
+                      return (
+                        <button
+                          key={stn.id}
+                          onClick={() => {
+                            selectTelemetryStation(stn);
+                            setInputQuery('');
+                            setShowStationDropdown(false);
+                          }}
+                          className={`w-full text-left px-3.5 py-2 text-xs hover:bg-slate-50 flex items-center justify-between transition-colors ${
+                            isStationActive
+                              ? 'bg-orange-50 text-orange-950 font-bold border-l-3 border-orange-600'
+                              : 'text-slate-700'
+                          }`}
+                        >
+                          <div>
+                            <p className="font-bold text-xs">{stn.name}</p>
+                            <p className="text-[10px] text-slate-400">{stn.region}, {stn.state}</p>
+                          </div>
+                          <span
+                            className={`text-[10px] font-bold px-1.5 py-0.5 rounded font-mono ${
+                              stn.riskLevel === 'CRITICAL'
+                                ? 'bg-red-100 text-red-700'
+                                : stn.riskLevel === 'HIGH'
+                                ? 'bg-orange-100 text-orange-700'
+                                : 'bg-emerald-100 text-emerald-700'
+                            }`}
+                          >
+                            {stn.riskScore}/100
                           </span>
-                        ) : (
-                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
-                            Geographic Place
-                          </span>
-                        )}
-                      </div>
-                    </button>
-                  ))}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              )}
+              </>
+            )}
+          </div>
 
-              {!isSearching && suggestions.length === 0 && searchError && (
-                <div className="px-4 py-3 text-xs text-slate-500 flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
-                  <span>{searchError}</span>
+          {/* MULTI-HAZARD MODE SELECTOR PILL (Desktop/Laptop) */}
+          <div className="relative hidden lg:block shrink-0">
+            <button
+              onClick={() => {
+                setShowHazardDropdown(!showHazardDropdown);
+                setShowStationDropdown(false);
+              }}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-800 text-xs font-bold transition-all shadow-2xs"
+              title={`Active Hazard Assessment Mode: ${HAZARD_PROFILES[selectedHazardType]?.name || 'All Hazards'}`}
+              aria-label="Multi-Hazard Assessment Mode"
+            >
+              <span className="shrink-0">{HAZARD_PROFILES[selectedHazardType]?.emoji || '🌐'}</span>
+              <span className="truncate max-w-[80px] xl:max-w-[115px]">
+                {HAZARD_PROFILES[selectedHazardType]?.shortName || 'All Hazards'}
+              </span>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            </button>
+
+            {showHazardDropdown && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setShowHazardDropdown(false)}
+                />
+                <div className="absolute left-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-slate-200 py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="px-3.5 pb-2 mb-1 border-b border-slate-100 flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      Disaster Hazard Vectors
+                    </span>
+                    <span className="text-[10px] font-mono text-orange-600 font-bold">Multi-Hazard</span>
+                  </div>
+
+                  <div className="max-h-72 overflow-y-auto py-1">
+                    {(Object.keys(HAZARD_PROFILES) as HazardType[]).map((hzKey) => {
+                      const profile = HAZARD_PROFILES[hzKey];
+                      const isCurrent = selectedHazardType === hzKey;
+                      return (
+                        <button
+                          key={hzKey}
+                          onClick={() => {
+                            setSelectedHazardType(hzKey);
+                            setShowHazardDropdown(false);
+                          }}
+                          className={`w-full text-left px-3.5 py-2 hover:bg-slate-50 flex items-center justify-between gap-2 transition-colors ${
+                            isCurrent ? 'bg-orange-50/70 font-bold text-orange-950' : 'text-slate-700'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-base">{profile.emoji}</span>
+                            <div className="min-w-0">
+                              <p className="text-xs truncate">{profile.name}</p>
+                              <p className="text-[10px] text-slate-400 truncate">{profile.thresholdUnit}</p>
+                            </div>
+                          </div>
+                          {isCurrent && (
+                            <CheckCircle2 className="w-3.5 h-3.5 text-orange-600 shrink-0" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              )}
+              </>
+            )}
+          </div>
+
+          {/* Global Geocoding Search Bar (Collapsible on narrow screens) */}
+          <div ref={searchContainerRef} className="relative flex-1 min-w-[120px] max-w-xs xl:max-w-sm hidden sm:block">
+            <div className="relative flex items-center">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 shrink-0 pointer-events-none" />
+              <input
+                type="text"
+                placeholder={t('app.searchPlaceholder', 'Search city or town (e.g. Munnar, Manali)...')}
+                value={inputQuery}
+                onChange={(e) => {
+                  setInputQuery(e.target.value);
+                  setShowSuggestionsDropdown(true);
+                }}
+                onKeyDown={handleKeyDown}
+                onFocus={() => {
+                  if (suggestions.length > 0 || searchError) {
+                    setShowSuggestionsDropdown(true);
+                  }
+                }}
+                className="w-full pl-8 pr-7 py-1.5 text-xs bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all font-medium placeholder:text-slate-400 truncate"
+              />
+
+              {/* Clear button or Spinner */}
+              {isSearching ? (
+                <Loader2 className="w-3.5 h-3.5 text-orange-600 animate-spin absolute right-2.5 top-1/2 -translate-y-1/2" />
+              ) : inputQuery.length > 0 ? (
+                <button
+                  onClick={handleClear}
+                  className="p-0.5 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-200 absolute right-2 top-1/2 -translate-y-1/2 transition-colors"
+                  title="Clear Search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              ) : null}
             </div>
-          )}
+
+            {/* Autocomplete Suggestions Dropdown */}
+            {showSuggestionsDropdown && (inputQuery.trim().length >= 2 || suggestions.length > 0 || isSearching) && (
+              <div className="absolute left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-slate-200 py-2 z-50 animate-in fade-in zoom-in-95 duration-150 max-h-80 overflow-y-auto min-w-[260px]">
+                {isSearching && (
+                  <div className="px-4 py-3 text-xs text-slate-500 flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 text-orange-600 animate-spin" />
+                    <span>Searching geographic locations...</span>
+                  </div>
+                )}
+
+                {!isSearching && suggestions.length > 0 && (
+                  <div>
+                    <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 mb-1 flex items-center justify-between">
+                      <span>Geographic Places</span>
+                      <span className="font-mono text-[9px]">OpenStreetMap & GIS</span>
+                    </div>
+
+                    {suggestions.map((loc, idx) => (
+                      <button
+                        key={loc.placeId || idx}
+                        onClick={() => handleSelectSuggestion(loc)}
+                        className="w-full text-left px-3.5 py-2 hover:bg-slate-50 flex items-start justify-between gap-2 transition-colors border-b border-slate-100 last:border-0"
+                      >
+                        <div className="flex items-start gap-2 min-w-0">
+                          <div className={`p-1 rounded-md shrink-0 mt-0.5 ${
+                            loc.isMonitored ? 'bg-orange-100 text-orange-700' : 'bg-blue-50 text-blue-600'
+                          }`}>
+                            <MapPin className="w-3.5 h-3.5" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-bold text-xs text-slate-900 truncate">
+                              {loc.name}
+                            </p>
+                            <p className="text-[10px] text-slate-500 line-clamp-1">
+                              {loc.displayName || loc.address}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="shrink-0 text-right">
+                          {loc.isMonitored ? (
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-800 border border-orange-200">
+                              IoT ({loc.monitoredStation?.riskScore})
+                            </span>
+                          ) : (
+                            <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                              GIS
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {!isSearching && suggestions.length === 0 && searchError && (
+                  <div className="px-4 py-3 text-xs text-slate-500 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
+                    <span>{searchError}</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ========================================================================= */}
+        {/* RIGHT SECTION: Language, SOS, Live API, System Status, Alerts, NDMA       */}
+        {/* ========================================================================= */}
+        <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2 shrink-0 justify-end">
+          {/* Multilingual Selector */}
+          <LanguageSelector />
+
+          {/* Emergency SOS High-Priority Trigger */}
+          <button
+            onClick={() => setShowSosModal(true)}
+            className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider flex items-center gap-1 sm:gap-1.5 shadow-md shadow-red-600/30 ring-2 ring-red-400/50 animate-pulse transition-all cursor-pointer shrink-0"
+            title={t('sos.title', 'Trigger Emergency Distress SOS')}
+            aria-label="Emergency SOS Distress Signal"
+          >
+            <AlertOctagon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white shrink-0" />
+            <span className="hidden xl:inline whitespace-nowrap">{t('sos.trigger', 'EMERGENCY SOS')}</span>
+            <span className="xl:hidden whitespace-nowrap">SOS</span>
+          </button>
+
+          {/* Demo Mode / Live API Toggle */}
+          <DemoModeToggle />
+
+          {/* System Status (Visible on md and up) */}
+          <div className="hidden md:block shrink-0">
+            <SystemStatusIndicator variant="badge" />
+          </div>
+
+          {/* Notifications Icon with Dropdown */}
+          <div className="relative shrink-0">
+            <button
+              onClick={() => {
+                setShowNotifications(!showNotifications);
+                setShowStationDropdown(false);
+                setShowHazardDropdown(false);
+              }}
+              className="p-1.5 sm:p-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors relative"
+              title={t('app.notifications', 'Emergency Alerts')}
+              aria-label="Emergency Alerts Notifications"
+            >
+              <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 ring-2 ring-white animate-pulse" />
+            </button>
+
+            {showNotifications && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setShowNotifications(false)}
+                />
+                <div className="absolute right-0 mt-2 w-72 sm:w-80 md:w-96 bg-white rounded-xl shadow-2xl border border-slate-200 py-3 z-50 animate-in fade-in duration-150">
+                  <div className="flex items-center justify-between px-4 pb-2 border-b border-slate-100">
+                    <div className="flex items-center gap-2">
+                      <Radio className="w-4 h-4 text-red-600 animate-pulse shrink-0" />
+                      <span className="text-xs font-bold text-slate-900 truncate">{t('app.activeWarningFeeds', 'Active Warning Feeds')}</span>
+                    </div>
+                    <Link
+                      to="/alerts"
+                      onClick={() => setShowNotifications(false)}
+                      className="text-[11px] font-semibold text-orange-600 hover:text-orange-700 shrink-0"
+                    >
+                      {t('app.viewAll', 'View All')}
+                    </Link>
+                  </div>
+
+                  <div className="divide-y divide-slate-100 max-h-72 overflow-y-auto">
+                    <div className="p-3 hover:bg-slate-50 transition-colors">
+                      <div className="flex items-center justify-between text-[11px] mb-1">
+                        <span className="font-bold text-red-600 uppercase">{t('severity.CRITICAL_ALERT', 'CRITICAL WARNING')}</span>
+                        <span className="text-slate-400">12m ago</span>
+                      </div>
+                      <p className="text-xs font-semibold text-slate-800">
+                        Chooralmala Sector (Wayanad)
+                      </p>
+                      <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-2">
+                        Rainfall 148mm/24h exceeded saturation threshold. Immediate evacuation recommended.
+                      </p>
+                    </div>
+                    <div className="p-3 hover:bg-slate-50 transition-colors">
+                      <div className="flex items-center justify-between text-[11px] mb-1">
+                        <span className="font-bold text-orange-600 uppercase">{t('severity.WARNING', 'HIGH RISK ADVISORY')}</span>
+                        <span className="text-slate-400">45m ago</span>
+                      </div>
+                      <p className="text-xs font-semibold text-slate-800">
+                        Munnar Tea Estate Zone A
+                      </p>
+                      <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-2">
+                        Continuous rainfall leading to toe erosion along riverbank.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* NDMA Operations Badge */}
+          <div
+            className="hidden sm:flex items-center gap-1.5 pl-1.5 sm:pl-2 border-l border-slate-200 shrink-0"
+            title="NDMA Operations — Disaster Management Control Center 01"
+          >
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-orange-100 text-orange-700 flex items-center justify-center font-bold text-xs border border-orange-200 shrink-0">
+              <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            </div>
+            <div className="hidden 2xl:block text-left min-w-0">
+              <p className="text-xs font-bold text-slate-800 leading-none truncate">{t('app.ndmaOperations', 'NDMA Operations')}</p>
+              <p className="text-[10px] text-slate-400 mt-0.5 truncate">{t('app.controlCenter', 'Control Center 01')}</p>
+            </div>
+            <div className="hidden lg:block 2xl:hidden text-left min-w-0">
+              <p className="text-xs font-bold text-slate-800 leading-none">NDMA</p>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Right Actions */}
-      <div className="flex items-center gap-1.5 sm:gap-2 md:gap-2.5 shrink-0 justify-end">
-        {/* Multilingual Selector */}
-        <LanguageSelector />
-
-        {/* Emergency SOS Quick Trigger */}
+      {/* ========================================================================= */}
+      {/* MOBILE COMPACT SUB-BAR (< 768px): Direct Location & Hazard Access         */}
+      {/* ========================================================================= */}
+      <div className="md:hidden flex items-center justify-between gap-1.5 px-2.5 sm:px-3 py-1.5 bg-slate-50/95 border-t border-slate-200/80 w-full min-w-0 text-xs">
+        {/* Mobile Location Picker Trigger */}
         <button
-          onClick={() => setShowSosModal(true)}
-          className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-md shadow-red-600/30 ring-2 ring-red-400/50 animate-pulse transition-all cursor-pointer"
-          title={t('sos.title', 'Trigger Emergency Distress SOS')}
+          onClick={() => {
+            setShowStationDropdown(!showStationDropdown);
+            setShowHazardDropdown(false);
+          }}
+          className={`flex-1 flex items-center justify-between gap-1 px-2 py-1 rounded-md border text-[11px] font-bold min-w-0 truncate ${
+            activeLocation.isMonitored
+              ? 'border-orange-200 bg-orange-50 text-orange-950'
+              : 'border-blue-200 bg-blue-50 text-blue-950'
+          }`}
+          title="Switch Active Location / Telemetry Station"
         >
-          <AlertOctagon className="w-4 h-4 text-white" />
-          <span className="hidden sm:inline">{t('sos.trigger', 'EMERGENCY SOS')}</span>
-          <span className="sm:hidden">SOS</span>
+          <div className="flex items-center gap-1 min-w-0 truncate">
+            <MapPin className={`w-3 h-3 shrink-0 ${activeLocation.isMonitored ? 'text-orange-600' : 'text-blue-600'}`} />
+            <span className="truncate">{activeLocation.name}</span>
+          </div>
+          <ChevronDown className="w-3 h-3 text-slate-400 shrink-0" />
         </button>
 
-        {/* Demo Mode Toggle */}
-        <DemoModeToggle />
-
-        {/* System Status */}
-        <div className="hidden lg:block">
-          <SystemStatusIndicator variant="badge" />
-        </div>
-
-        {/* Notifications Icon with Dropdown */}
-        <div className="relative">
-          <button
-            onClick={() => setShowNotifications(!showNotifications)}
-            className="p-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors relative"
-            title={t('app.notifications', 'Emergency Alerts')}
-          >
-            <Bell className="w-5 h-5" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 ring-2 ring-white animate-pulse" />
-          </button>
-
-          {showNotifications && (
-            <>
-              <div
-                className="fixed inset-0 z-40"
-                onClick={() => setShowNotifications(false)}
-              />
-              <div className="absolute right-0 mt-2 w-80 md:w-96 bg-white rounded-xl shadow-2xl border border-slate-200 py-3 z-50 animate-in fade-in duration-150">
-                <div className="flex items-center justify-between px-4 pb-2 border-b border-slate-100">
-                  <div className="flex items-center gap-2">
-                    <Radio className="w-4 h-4 text-red-600 animate-pulse" />
-                    <span className="text-xs font-bold text-slate-900">{t('app.activeWarningFeeds', 'Active Warning Feeds')}</span>
-                  </div>
-                  <Link
-                    to="/alerts"
-                    onClick={() => setShowNotifications(false)}
-                    className="text-[11px] font-semibold text-orange-600 hover:text-orange-700"
-                  >
-                    {t('app.viewAll', 'View All')}
-                  </Link>
-                </div>
-
-                <div className="divide-y divide-slate-100 max-h-72 overflow-y-auto">
-                  <div className="p-3 hover:bg-slate-50 transition-colors">
-                    <div className="flex items-center justify-between text-[11px] mb-1">
-                      <span className="font-bold text-red-600 uppercase">{t('severity.CRITICAL_ALERT', 'CRITICAL WARNING')}</span>
-                      <span className="text-slate-400">12m ago</span>
-                    </div>
-                    <p className="text-xs font-semibold text-slate-800">
-                      Chooralmala Sector (Wayanad)
-                    </p>
-                    <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-2">
-                      Rainfall 148mm/24h exceeded saturation threshold. Immediate evacuation recommended.
-                    </p>
-                  </div>
-                  <div className="p-3 hover:bg-slate-50 transition-colors">
-                    <div className="flex items-center justify-between text-[11px] mb-1">
-                      <span className="font-bold text-orange-600 uppercase">{t('severity.WARNING', 'HIGH RISK ADVISORY')}</span>
-                      <span className="text-slate-400">45m ago</span>
-                    </div>
-                    <p className="text-xs font-semibold text-slate-800">
-                      Munnar Tea Estate Zone A
-                    </p>
-                    <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-2">
-                      Continuous rainfall leading to toe erosion along riverbank.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* User Pill */}
-        <div className="hidden sm:flex items-center gap-2 pl-2 border-l border-slate-200">
-          <div className="w-8 h-8 rounded-lg bg-orange-100 text-orange-700 flex items-center justify-center font-bold text-xs border border-orange-200">
-            <Shield className="w-4 h-4" />
+        {/* Mobile Hazard Selector Trigger */}
+        <button
+          onClick={() => {
+            setShowHazardDropdown(!showHazardDropdown);
+            setShowStationDropdown(false);
+          }}
+          className="flex-1 flex items-center justify-between gap-1 px-2 py-1 rounded-md border border-slate-200 bg-white text-slate-800 text-[11px] font-bold min-w-0 truncate"
+          title="Switch Hazard Mode"
+        >
+          <div className="flex items-center gap-1 min-w-0 truncate">
+            <span className="shrink-0">{HAZARD_PROFILES[selectedHazardType]?.emoji || '🌐'}</span>
+            <span className="truncate">{HAZARD_PROFILES[selectedHazardType]?.shortName || 'All Hazards'}</span>
           </div>
-          <div className="hidden xl:block text-left">
-            <p className="text-xs font-bold text-slate-800 leading-none">{t('app.ndmaOperations', 'NDMA Operations')}</p>
-            <p className="text-[10px] text-slate-400 mt-0.5">{t('app.controlCenter', 'Control Center 01')}</p>
-          </div>
-        </div>
+          <ChevronDown className="w-3 h-3 text-slate-400 shrink-0" />
+        </button>
       </div>
 
       {/* Emergency SOS Modal */}
