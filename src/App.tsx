@@ -19,6 +19,7 @@ import { HistoricalPage } from './pages/Historical';
 import { AnalyticsPage } from './pages/Analytics';
 import { AdminPage } from './pages/Admin';
 import { MissionControlPage } from './pages/MissionControl';
+import { DamageAssessmentPage } from './pages/DamageAssessmentPage';
 import { DemoTourProvider } from './context/DemoTourContext';
 
 export const App: React.FC = () => {
@@ -39,6 +40,9 @@ export const App: React.FC = () => {
                 <Route path="ai-land-scan" element={<AiLandScanPage />} />
                 <Route path="land-scan" element={<Navigate to="/ai-land-scan" replace />} />
                 <Route path="rainfall" element={<RainfallPage />} />
+                <Route path="damage-assessment" element={<DamageAssessmentPage />} />
+                <Route path="prioritization" element={<Navigate to="/damage-assessment" replace />} />
+                <Route path="damage-prioritization" element={<Navigate to="/damage-assessment" replace />} />
                 <Route path="impact-analysis" element={<ImpactAnalysisPage />} />
                 <Route path="evacuation" element={<EvacuationPage />} />
                 <Route path="alerts" element={<AlertsPage />} />

@@ -129,13 +129,22 @@ export const ImpactAnalysisPage: React.FC = () => {
           </p>
         </div>
 
-        <Link
-          to="/evacuation"
-          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm transition-all"
-        >
-          <Navigation className="w-4 h-4" />
-          <span>Plan Evacuation Corridor</span>
-        </Link>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Link
+            to="/damage-assessment"
+            className="px-3.5 py-2 bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-600 hover:to-indigo-600 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all border border-purple-500/40"
+          >
+            <Building2 className="w-4 h-4 text-purple-200" />
+            <span>Damage Prioritization (PS-53)</span>
+          </Link>
+          <Link
+            to="/evacuation"
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm transition-all"
+          >
+            <Navigation className="w-4 h-4" />
+            <span>Plan Evacuation Corridor</span>
+          </Link>
+        </div>
       </div>
 
       {/* Hazard Selector Tabs */}

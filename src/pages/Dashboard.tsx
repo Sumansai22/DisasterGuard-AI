@@ -181,6 +181,14 @@ export const DashboardPage: React.FC = () => {
         {/* Action Buttons Responsive Grid */}
         <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-2.5 w-full lg:w-auto shrink-0 flex-wrap">
           <DemoTourButton variant="hero" />
+          <Link
+            to="/damage-assessment"
+            className="px-3 py-2 bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-600 hover:to-indigo-600 text-white rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-[0.98] border border-purple-500/40"
+            title="Open PS-53 Disaster Damage Assessment and Inspection Prioritization Workspace"
+          >
+            <Building2 className="w-3.5 h-3.5 text-purple-200 shrink-0" />
+            <span className="truncate">Damage Prioritization (PS-53)</span>
+          </Link>
           <button
             onClick={() => setIsSimulatorOpen(true)}
             className="px-3 py-2 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-[0.98] cursor-pointer"

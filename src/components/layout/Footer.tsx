@@ -9,10 +9,8 @@ export const Footer: React.FC = () => {
         <div className="flex flex-wrap items-center justify-center md:justify-start gap-1.5 sm:gap-2 text-center md:text-left min-w-0">
           <ShieldCheck className="w-4 h-4 text-orange-600 shrink-0" />
           <span className="font-semibold text-slate-800 shrink-0">
-            DisasterGuard AI — Ai Verse (Team Heroshi)
+            DisasterGuard AI · Ai Verse (Team Heroshi) · Disaster Damage Prioritization System
           </span>
-          <span className="text-slate-300 hidden sm:inline">•</span>
-          <span className="text-slate-500">Disaster Damage Prioritization System</span>
         </div>
 
         <div className="flex flex-wrap items-center justify-center md:justify-end gap-2.5 sm:gap-4 text-[11px] font-mono shrink-0">

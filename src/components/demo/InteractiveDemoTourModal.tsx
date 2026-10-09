@@ -33,6 +33,8 @@ import {
   MapPin,
   Flame,
   Waves,
+  ListFilter,
+  UserCheck,
 } from 'lucide-react';
 import { useDemoTour } from '../../context/DemoTourContext';
 import { DEMO_FEATURES } from '../../data/demoTourData';
@@ -105,6 +107,10 @@ export const InteractiveDemoTourModal: React.FC = () => {
         return <LifeBuoy className="w-5 h-5" />;
       case 'History':
         return <History className="w-5 h-5" />;
+      case 'ListFilter':
+        return <ListFilter className="w-5 h-5" />;
+      case 'UserCheck':
+        return <UserCheck className="w-5 h-5" />;
       default:
         return <Sparkles className="w-5 h-5" />;
     }

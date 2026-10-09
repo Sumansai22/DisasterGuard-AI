@@ -38,6 +38,8 @@ import { getRiskColor } from '../../utils/riskLevel';
 import { Maximize2, Shield, AlertTriangle, Info, Navigation } from 'lucide-react';
 import { MONITORED_STATIONS, RISK_ZONES, SAFE_ZONES } from '../../utils/constants';
 import { useApp } from '../../context/AppContext';
+import { damageAssessmentService } from '../../services/damageAssessmentService';
+import { DamageAssessmentRecord } from '../../types/damageAssessment';
 
 // Recenter map when center/zoom changes
 function ChangeMapView({ center, zoom }: { center: [number, number]; zoom: number }) {
@@ -270,6 +272,25 @@ const createSearchedIcon = () => {
   });
 };
 
+// 10. PS-53 Damage Assessment Pin Icon
+const createDamagePinIcon = (tier: string) => {
+  const color = tier === 'P1_URGENT' ? '#dc2626' : tier === 'P2_HIGH' ? '#ea580c' : '#d97706';
+  return L.divIcon({
+    className: 'custom-damage-assessment-pin',
+    html: `
+      <div style="position: relative; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+        <div style="position: absolute; width: 38px; height: 38px; border-radius: 9999px; background-color: ${color}; opacity: 0.35;" class="pulse-marker"></div>
+        <div style="width: 26px; height: 26px; border-radius: 8px; background-color: ${color}; border: 2.5px solid white; box-shadow: 0 4px 8px rgba(0,0,0,0.35); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px;">
+          🏢
+        </div>
+      </div>
+    `,
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+    popupAnchor: [0, -16],
+  });
+};
+
 // ----------------------------------------------------------------------
 // COMPONENT PROPS & MAIN IMPLEMENTATION
 // ----------------------------------------------------------------------
@@ -294,6 +315,7 @@ interface RiskMapProps {
   showControls?: boolean;
   activeLayers?: DisasterMapLayersState;
   onLayersChange?: (layers: DisasterMapLayersState) => void;
+  activeIncidentCoordinates?: { lat: number; lng: number; label?: string };
 }
 
 export const RiskMap: React.FC<RiskMapProps> = ({
@@ -316,8 +338,15 @@ export const RiskMap: React.FC<RiskMapProps> = ({
   showControls = true,
   activeLayers,
   onLayersChange,
+  activeIncidentCoordinates,
 }) => {
   const { mapCenter, mapZoom, searchedLocation } = useApp();
+  const [damageAssessments, setDamageAssessments] = useState<DamageAssessmentRecord[]>([]);
+
+  useEffect(() => {
+    setDamageAssessments(damageAssessmentService.getAllAssessments());
+  }, []);
+
   const activeCenter = center || mapCenter;
   const activeZoom = zoom || mapZoom;
 
@@ -709,6 +738,64 @@ export const RiskMap: React.FC<RiskMapProps> = ({
           >
             <Popup className="custom-leaflet-popup" autoPan={true}>
               <SearchedLocationPopup location={searchedLocation} />
+            </Popup>
+          </Marker>
+        )}
+
+        {/* 10. PS-53 DAMAGE PRIORITIZATION ASSESSMENTS */}
+        {damageAssessments.map((asmt) => (
+          <Marker
+            key={asmt.id}
+            position={[asmt.coordinates.lat, asmt.coordinates.lng]}
+            icon={createDamagePinIcon(asmt.priorityTier)}
+          >
+            <Popup className="custom-leaflet-popup">
+              <div className="p-3 text-xs font-sans max-w-xs space-y-2">
+                <div className="flex items-center justify-between gap-1.5">
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded font-black bg-red-100 text-red-800 border border-red-200">
+                    {asmt.priorityTier.replace('_', ' ')}
+                  </span>
+                  <span className="text-[10px] font-mono text-purple-700 font-bold">
+                    {asmt.estimatedDamageCategory}
+                  </span>
+                </div>
+                <div className="font-extrabold text-slate-900 text-xs leading-snug">
+                  {asmt.title}
+                </div>
+                <div className="text-[11px] text-slate-600">
+                  {asmt.locationName} ({asmt.district}, {asmt.state})
+                </div>
+                <div className="p-2 rounded bg-slate-50 border border-slate-200 text-[10px] text-slate-700 italic">
+                  "{asmt.priorityRationale}"
+                </div>
+                <div className="flex items-center justify-between pt-1 border-t border-slate-200 text-[10px] font-mono">
+                  <span>Priority: <strong>{asmt.scores.compositePriorityScore}/100</strong></span>
+                  <span className="text-emerald-700 font-bold">{asmt.verificationStatus}</span>
+                </div>
+                <a
+                  href="/damage-assessment"
+                  className="block w-full py-1.5 bg-orange-600 hover:bg-orange-500 text-white text-center font-bold rounded-lg text-[11px] shadow-xs"
+                >
+                  Open in Damage Workspace →
+                </a>
+              </div>
+            </Popup>
+          </Marker>
+        ))}
+
+        {/* Active Incident Coordinate Pin */}
+        {activeIncidentCoordinates && (
+          <Marker
+            position={[activeIncidentCoordinates.lat, activeIncidentCoordinates.lng]}
+            icon={createDamagePinIcon('P1_URGENT')}
+          >
+            <Popup className="custom-leaflet-popup">
+              <div className="p-2.5 text-xs font-sans">
+                <div className="font-bold text-slate-900">{activeIncidentCoordinates.label || 'Active Assessment Area'}</div>
+                <div className="text-[10px] font-mono text-slate-500 mt-0.5">
+                  {activeIncidentCoordinates.lat.toFixed(4)}°N, {activeIncidentCoordinates.lng.toFixed(4)}°E
+                </div>
+              </div>
             </Popup>
           </Marker>
         )}

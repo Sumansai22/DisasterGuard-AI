@@ -49,13 +49,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const navItems = [
     { name: t('nav.dashboard', 'Dashboard'), path: '/', icon: LayoutDashboard },
+    { name: 'Damage Prioritization', path: '/damage-assessment', icon: Building2, badge: 'PS-53 CORE' },
     { name: t('nav.missionControl', 'Mission Control'), path: '/mission-control', icon: Radio, badge: 'OPS' },
     { name: t('nav.riskMap', 'Risk Map'), path: '/risk-map', icon: MapPin },
     { name: t('nav.riskPrediction', 'AI Risk Prediction'), path: '/prediction', icon: BrainCircuit, badge: 'RF 9-Param' },
     { name: t('nav.droneRescue', 'Drone Rescue'), path: '/drone-rescue', icon: Crosshair, badge: 'AI UAV' },
     { name: t('nav.aiLandScan', 'AI Land Scan'), path: '/ai-land-scan', icon: ScanLine, badge: 'U-Net 2D' },
     { name: t('nav.rainfall', 'Rainfall Monitoring'), path: '/rainfall', icon: CloudRain },
-    { name: t('nav.impactAnalysis', 'Impact Analysis'), path: '/impact-analysis', icon: Building2 },
+    { name: t('nav.impactAnalysis', 'Impact Analysis'), path: '/impact-analysis', icon: Layers },
     { name: t('nav.evacuation', 'Evacuation Routes'), path: '/evacuation', icon: Navigation },
     { name: t('nav.alerts', 'Alerts'), path: '/alerts', icon: BellRing, badgeCount: 4 },
     { name: t('nav.historical', 'Historical Analysis'), path: '/historical', icon: History },
