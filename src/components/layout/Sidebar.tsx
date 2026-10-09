@@ -91,7 +91,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       groupName: t('nav.groupRecords', 'RECORDS'),
       items: [
         { name: t('nav.reportsHistory', 'Reports & History'), path: '/historical', icon: History },
-        { name: t('nav.userFeedback', 'User Feedback'), path: '/feedback', icon: MessageSquarePlus },
+        { name: t('nav.feedbackCenter', 'Feedback & Experience Center'), path: '/feedback', icon: MessageSquarePlus },
       ],
     },
     {

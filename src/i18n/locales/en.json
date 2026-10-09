@@ -71,7 +71,8 @@
     "admin": "System Admin",
     "inspectorWorkspace": "Field Operations",
     "citizenPortal": "Citizen Portal",
-    "groupWorkspaces": "Workspaces"
+    "groupWorkspaces": "Workspaces",
+    "feedbackCenter": "Feedback & Experience Center"
   },
   "common": {
     "sortBy": "Sort By",

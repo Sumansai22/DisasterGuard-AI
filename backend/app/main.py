@@ -18,6 +18,7 @@ from app.api import (
     multi_hazard,
     drone_rescue,
     disaster_management,
+    feedback,
 )
 from app.services.ml_service import ml_service
 from app.services.segmentation_service import segmentation_service
@@ -75,6 +76,8 @@ app.include_router(stations.router, prefix="/api/stations", tags=["Stations"])
 app.include_router(alerts.router, prefix="/api/alerts", tags=["Alerts"])
 app.include_router(weather.router, prefix="/api/weather", tags=["Weather"])
 app.include_router(audit_logs.router, prefix="/api/audit-logs", tags=["Audit Logs"])
+app.include_router(feedback.router, prefix="/api/v1/feedback", tags=["Feedback Center"])
+app.include_router(feedback.router, prefix="/api/feedback", tags=["Feedback Center Alias"])
 
 @app.get("/health", tags=["System"])
 def health_root():
