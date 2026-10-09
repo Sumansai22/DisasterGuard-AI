@@ -22,6 +22,8 @@ import {
   Users,
   Sliders,
   MessageSquarePlus,
+  UserCheck,
+  Globe,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
@@ -88,6 +90,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
       ],
     },
     {
+      groupName: t('nav.groupWorkspaces', 'Workspaces'),
+      items: [
+        ...(currentUser.role === 'ADMIN'
+          ? [
+              { name: t('nav.adminCenter', 'Admin Center'), path: '/admin', icon: ShieldCheck, badge: 'ROOT' },
+            ]
+          : []),
+        ...(currentUser.role === 'INSPECTOR' || currentUser.role === 'ADMIN'
+          ? [
+              { name: t('nav.inspectorWorkspace', 'Field Operations'), path: '/inspector-workspace', icon: UserCheck, badge: 'FIELD' },
+            ]
+          : []),
+        ...(currentUser.role === 'OPERATOR' || currentUser.role === 'ADMIN'
+          ? [
+              { name: t('nav.missionControl', 'Emergency Ops Center'), path: '/mission-control', icon: Radio, badge: 'EOC' },
+            ]
+          : []),
+        { name: t('nav.citizenPortal', 'Citizen Portal'), path: '/portal', icon: Globe },
+      ],
+    },
+    {
       groupName: t('nav.groupRecords', 'Records'),
       items: [
         { name: t('nav.reportsHistory', 'Reports & History'), path: '/historical', icon: History },
@@ -99,8 +122,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {
             groupName: t('nav.groupAdmin', 'Administration'),
             items: [
-              { name: t('nav.adminCenter', 'Admin Center'), path: '/admin', icon: ShieldCheck, badge: 'ROOT' },
-              { name: t('nav.settings', 'Settings'), path: '/admin?tab=config', icon: Sliders },
+              { name: t('nav.settings', 'Settings & System'), path: '/admin?tab=config', icon: Sliders },
             ],
           },
         ]
@@ -273,7 +295,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   {currentUser.name}
                 </span>
                 <span className="text-[10px] text-orange-400 font-mono truncate mt-0.5">
-                  {currentUser.role} • {currentUser.designation}
+                  {currentUser.role} • {currentUser.designation || currentUser.agency}
                 </span>
               </div>
             )}

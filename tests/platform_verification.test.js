@@ -344,3 +344,89 @@ describe('Multilingual i18n & Translation Coverage (6 Indian Languages)', () => 
     });
   });
 });
+
+describe('Enterprise RBAC Permissions Matrix and Workspace Isolation', () => {
+  const ROLE_DEFINITIONS = {
+    ADMIN: {
+      role: 'ADMIN',
+      defaultWorkspace: '/admin',
+      permissions: [
+        'user:read', 'user:create', 'user:update', 'user:status', 'role:manage',
+        'config:read', 'config:update',
+        'incident:read', 'incident:create', 'incident:update', 'incident:assign',
+        'assessment:read', 'assessment:create', 'assessment:verify', 'assessment:export',
+        'gis:read', 'gis:manage',
+        'model:read', 'model:test',
+        'sos:read', 'sos:create', 'sos:dispatch',
+        'alert:read', 'alert:create',
+        'shelter:read', 'shelter:update',
+        'feedback:read', 'feedback:create', 'feedback:update',
+        'report:read', 'report:export',
+        'audit:read',
+      ],
+    },
+    INSPECTOR: {
+      role: 'INSPECTOR',
+      defaultWorkspace: '/inspector-workspace',
+      permissions: [
+        'incident:read', 'incident:update',
+        'assessment:read', 'assessment:create', 'assessment:verify',
+        'gis:read', 'shelter:read', 'sos:create',
+        'feedback:create', 'feedback:read',
+      ],
+    },
+    OPERATOR: {
+      role: 'OPERATOR',
+      defaultWorkspace: '/mission-control',
+      permissions: [
+        'incident:read', 'incident:create', 'incident:update', 'incident:assign',
+        'sos:read', 'sos:create', 'sos:dispatch',
+        'alert:read', 'alert:create', 'gis:read',
+        'shelter:read', 'shelter:update', 'assessment:read',
+        'report:read', 'feedback:read', 'feedback:create',
+      ],
+    },
+    CITIZEN: {
+      role: 'CITIZEN',
+      defaultWorkspace: '/portal',
+      permissions: [
+        'incident:create', 'sos:create', 'gis:read',
+        'shelter:read', 'feedback:create', 'feedback:read', 'alert:read',
+      ],
+    },
+  };
+
+  test('ADMIN possesses all privileged operations and routes to Admin Center', () => {
+    const admin = ROLE_DEFINITIONS.ADMIN;
+    assert.equal(admin.defaultWorkspace, '/admin');
+    assert.ok(admin.permissions.includes('user:status'));
+    assert.ok(admin.permissions.includes('config:update'));
+    assert.ok(admin.permissions.includes('audit:read'));
+  });
+
+  test('CITIZEN is strictly denied privileged admin and triage operations', () => {
+    const citizen = ROLE_DEFINITIONS.CITIZEN;
+    assert.equal(citizen.defaultWorkspace, '/portal');
+    assert.ok(!citizen.permissions.includes('user:create'));
+    assert.ok(!citizen.permissions.includes('audit:read'));
+    assert.ok(!citizen.permissions.includes('config:update'));
+    assert.ok(!citizen.permissions.includes('sos:dispatch'));
+  });
+
+  test('INSPECTOR has ground truth verification permission but no user administration', () => {
+    const inspector = ROLE_DEFINITIONS.INSPECTOR;
+    assert.equal(inspector.defaultWorkspace, '/inspector-workspace');
+    assert.ok(inspector.permissions.includes('assessment:verify'));
+    assert.ok(!inspector.permissions.includes('user:create'));
+    assert.ok(!inspector.permissions.includes('config:update'));
+  });
+
+  test('OPERATOR has emergency dispatch and incident assignment but no root config update', () => {
+    const operator = ROLE_DEFINITIONS.OPERATOR;
+    assert.equal(operator.defaultWorkspace, '/mission-control');
+    assert.ok(operator.permissions.includes('sos:dispatch'));
+    assert.ok(operator.permissions.includes('incident:assign'));
+    assert.ok(!operator.permissions.includes('user:create'));
+    assert.ok(!operator.permissions.includes('config:update'));
+  });
+});

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { UserRole, UserProfile } from '../types/auth';
+import { UserRole, UserProfile, PermissionAction, ROLE_DEFINITIONS } from '../types/auth';
 
 export const PRESET_PERSONAS: Record<UserRole, UserProfile> = {
   ADMIN: {
@@ -97,6 +97,8 @@ interface AuthContextType {
   toggleUserStatus: (id: string) => void;
   hasRole: (allowedRoles: UserRole[]) => boolean;
   isRole: (role: UserRole) => boolean;
+  hasPermission: (permission: PermissionAction) => boolean;
+  getRoleDefinition: () => typeof ROLE_DEFINITIONS[UserRole];
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -188,6 +190,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return currentUser.role === role;
   };
 
+  const hasPermission = (permission: PermissionAction): boolean => {
+    const roleDef = ROLE_DEFINITIONS[currentUser.role];
+    if (!roleDef) return false;
+    return roleDef.permissions.includes(permission);
+  };
+
+  const getRoleDefinition = () => {
+    return ROLE_DEFINITIONS[currentUser.role] || ROLE_DEFINITIONS.ADMIN;
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -200,6 +212,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         toggleUserStatus,
         hasRole,
         isRole,
+        hasPermission,
+        getRoleDefinition,
       }}
     >
       {children}

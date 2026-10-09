@@ -67,7 +67,10 @@
     "alerts": "எச்சரிக்கைகள்",
     "historical": "வரலாற்று பகுப்பாய்வு",
     "analytics": "மீட்பு பகுப்பாய்வு",
-    "admin": "கணினி நிர்வாகி"
+    "admin": "கணினி நிர்வாகி",
+    "inspectorWorkspace": "கள செயல்பாடுகள்",
+    "citizenPortal": "குடிமக்கள் போர்டல்",
+    "groupWorkspaces": "பணிப்பகுதிகள்"
   },
   "common": {
     "sortBy": "வரிசைப்படுத்து",
@@ -341,5 +344,23 @@
     "roleCitizen": "குடிமகன் / வசிப்பவர்",
     "switchPersona": "பாத்திரத்தை மாற்றவும்",
     "currentPersona": "தற்போதைய பாத்திரம்"
+  },
+  "admin": {
+    "title": "நிர்வாக மையம் & இயங்குதள நிர்வாகம்",
+    "usersRoles": "பயனர்கள் & அணுகல் கட்டுப்பாடு",
+    "rolesPermissions": "பாத்திரங்கள் & அனுமதிகள்",
+    "orgConfig": "செயல்பாடுகள் கட்டமைப்பு",
+    "incidentCommand": "சம்பவ கட்டளை மையம்",
+    "damageInspection": "சேத மதிப்பீடு & ஆய்வு",
+    "gisHazards": "GIS & ஆபத்து மேலாண்மை",
+    "aiServices": "AI மாதிரிகள் & சேவைகள்",
+    "weatherEnv": "வானிலை & சுற்றுச்சூழல்",
+    "sheltersEvac": "தங்குமிடங்கள் & வெளியேற்றம்",
+    "sosRescue": "அவசர SOS & மீட்பு",
+    "alertsNotif": "எச்சரிக்கைகள் & அறிவிப்புகள்",
+    "feedbackAdmin": "கருத்து & அனுபவ மையம்",
+    "reportsAnalytics": "அறிக்கைகள் & வரலாற்று பகுப்பாய்வு",
+    "auditSecurity": "தணிக்கை பதிவுகள் & பாதுகாப்பு நிகழ்வுகள்",
+    "systemIntegrations": "கணினி ஆரோக்கியம் & ஒருங்கிணைப்புகள்"
   }
 }

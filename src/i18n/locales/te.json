@@ -67,7 +67,10 @@
     "alerts": "హెచ్చరికలు",
     "historical": "చారిత్రక విశ్లేషణ",
     "analytics": "ప్రతిస్పందన విశ్లేషణలు",
-    "admin": "సిస్టమ్ అడ్మిన్"
+    "admin": "సిస్టమ్ అడ్మిన్",
+    "inspectorWorkspace": "క్షేత్ర కార్యకలాపాలు",
+    "citizenPortal": "పౌర పోర్టల్",
+    "groupWorkspaces": "వర్క్‌స్పేస్‌లు"
   },
   "common": {
     "sortBy": "దీని ప్రకారం క్రమబద్ధీకరించు",
@@ -341,5 +344,23 @@
     "roleCitizen": "పౌరుడు / నివాసి",
     "switchPersona": "పాత్రను మార్చండి",
     "currentPersona": "ప్రస్తుత పాత్ర"
+  },
+  "admin": {
+    "title": "అడ్మిన్ సెంటర్ & ప్లాట్‌ఫారమ్ గవర్నెన్స్",
+    "usersRoles": "వినియోగదారులు & ప్రాప్యత నియంత్రణ",
+    "rolesPermissions": "పాత్రలు & అనుమతులు",
+    "orgConfig": "కార్యకలాపాల ఆకృతీకరణ",
+    "incidentCommand": "సంఘటన కమాండ్ సెంటర్",
+    "damageInspection": "నష్టం అంచనా & తనిఖీ",
+    "gisHazards": "GIS & ప్రమాద నిర్వహణ",
+    "aiServices": "AI మోడల్స్ & సేవలు",
+    "weatherEnv": "వాతావరణం & పర్యావరణం",
+    "sheltersEvac": "ఆశ్రయాలు & తరలింపు",
+    "sosRescue": "అత్యవసర SOS & రక్షణ",
+    "alertsNotif": "హెచ్చరికలు & నోటిఫికేషన్‌లు",
+    "feedbackAdmin": "ఫీడ్‌బ్యాక్ & అనుభవ కేంద్రం",
+    "reportsAnalytics": "నివేదికలు & చారిత్రక విశ్లేషణ",
+    "auditSecurity": "ఆడిట్ లాగ్‌లు & భద్రతా ఈవెంట్‌లు",
+    "systemIntegrations": "సిస్టమ్ ఆరోగ్యం & ఇంటిగ్రేషన్లు"
   }
 }

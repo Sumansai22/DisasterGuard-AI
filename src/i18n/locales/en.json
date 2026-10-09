@@ -68,7 +68,10 @@
     "alerts": "Alerts & Advisories",
     "historical": "Historical Analysis",
     "analytics": "Response Analytics",
-    "admin": "System Admin"
+    "admin": "System Admin",
+    "inspectorWorkspace": "Field Operations",
+    "citizenPortal": "Citizen Portal",
+    "groupWorkspaces": "Workspaces"
   },
   "common": {
     "sortBy": "Sort By",
@@ -342,5 +345,23 @@
     "roleCitizen": "Civilian / Community Resident",
     "switchPersona": "Switch Persona",
     "currentPersona": "Current Persona"
+  },
+  "admin": {
+    "title": "Admin Center & Platform Governance",
+    "usersRoles": "Users & Access Control",
+    "rolesPermissions": "Roles & Permissions",
+    "orgConfig": "Operations Configuration",
+    "incidentCommand": "Incident Command Center",
+    "damageInspection": "Damage Assessment & Inspection",
+    "gisHazards": "GIS & Hazard Management",
+    "aiServices": "AI Models & Services",
+    "weatherEnv": "Weather & Environment",
+    "sheltersEvac": "Shelters & Evacuation",
+    "sosRescue": "Emergency SOS & Rescue",
+    "alertsNotif": "Alerts & Notifications",
+    "feedbackAdmin": "Feedback & Experience Center",
+    "reportsAnalytics": "Reports & Historical Analysis",
+    "auditSecurity": "Audit Logs & Security Events",
+    "systemIntegrations": "System Health & Integrations"
   }
 }

@@ -67,7 +67,10 @@
     "alerts": "चेतावनी और परामर्श",
     "historical": "ऐतिहासिक विश्लेषण",
     "analytics": "प्रतिक्रिया विश्लेषण",
-    "admin": "सिस्टम व्यवस्थापक"
+    "admin": "सिस्टम व्यवस्थापक",
+    "inspectorWorkspace": "फील्ड ऑपरेशंस",
+    "citizenPortal": "नागरिक पोर्टल",
+    "groupWorkspaces": "कार्यक्षेत्र"
   },
   "common": {
     "sortBy": "क्रमबद्ध करें",
@@ -341,5 +344,23 @@
     "roleCitizen": "नागरिक / निवासी",
     "switchPersona": "भूमिका बदलें",
     "currentPersona": "वर्तमान भूमिका"
+  },
+  "admin": {
+    "title": "एडमिन सेंटर एवं प्लेटफॉर्म गवर्नेंस",
+    "usersRoles": "उपयोगकर्ता एवं पहुंच नियंत्रण",
+    "rolesPermissions": "भूमिकाएं एवं अनुमतियां",
+    "orgConfig": "संचालन विन्यास",
+    "incidentCommand": "घटना कमान केंद्र",
+    "damageInspection": "क्षति मूल्यांकन एवं निरीक्षण",
+    "gisHazards": "जीआईएस एवं आपदा प्रबंधन",
+    "aiServices": "एआई मॉडल एवं सेवाएं",
+    "weatherEnv": "मौसम एवं पर्यावरण",
+    "sheltersEvac": "आश्रय एवं निकासी",
+    "sosRescue": "आपातकालीन एसओएस एवं बचाव",
+    "alertsNotif": "अलर्ट एवं सूचनाएं",
+    "feedbackAdmin": "प्रतिक्रिया एवं अनुभव केंद्र",
+    "reportsAnalytics": "रिपोर्ट एवं ऐतिहासिक विश्लेषण",
+    "auditSecurity": "ऑडिट लॉग एवं सुरक्षा घटनाएं",
+    "systemIntegrations": "सिस्टम स्वास्थ्य एवं एकीकरण"
   }
 }
