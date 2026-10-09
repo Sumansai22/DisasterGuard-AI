@@ -18,8 +18,12 @@ import {
   Crosshair,
   X,
   Radio,
+  Compass,
+  Users,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
+import { RoleSwitcherModal } from '../common/RoleSwitcherModal';
 import { useTranslation } from '../../i18n';
 import { landScanService } from '../../services/landScanService';
 
@@ -37,8 +41,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setMobileOpen,
 }) => {
   const { isOnline } = useApp();
+  const { currentUser } = useAuth();
   const { t } = useTranslation();
   const [isUnetReady, setIsUnetReady] = useState<boolean>(true);
+  const [showRoleModal, setShowRoleModal] = useState<boolean>(false);
 
   useEffect(() => {
     landScanService
@@ -50,6 +56,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const navItems = [
     { name: t('nav.dashboard', 'Dashboard'), path: '/', icon: LayoutDashboard },
     { name: 'Damage Prioritization', path: '/damage-assessment', icon: Building2, badge: 'PS-53 CORE' },
+    { name: 'Inspector Workspace', path: '/inspector-workspace', icon: Compass, badge: 'FIELD' },
+    { name: 'Citizen Portal', path: '/portal', icon: Users, badge: 'REPORT' },
     { name: t('nav.missionControl', 'Mission Control'), path: '/mission-control', icon: Radio, badge: 'OPS' },
     { name: t('nav.riskMap', 'Risk Map'), path: '/risk-map', icon: MapPin },
     { name: t('nav.riskPrediction', 'AI Risk Prediction'), path: '/prediction', icon: BrainCircuit, badge: 'RF 9-Param' },
@@ -210,26 +218,36 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         )}
 
-        {/* User Profile */}
-        <div className="flex items-center justify-between pt-1 border-t border-slate-800/60">
+        {/* User Profile / Switch Persona */}
+        <button
+          onClick={() => setShowRoleModal(true)}
+          className="w-full flex items-center justify-between pt-1 border-t border-slate-800/60 hover:bg-slate-800/40 p-1 rounded-lg transition-colors text-left"
+          title={`Active Persona: ${currentUser.name} (${currentUser.role}) — Click to switch`}
+        >
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-lg bg-slate-800 text-slate-200 flex items-center justify-center font-bold text-xs border border-slate-700">
-              <User className="w-4 h-4 text-slate-300" />
+            <div className="w-8 h-8 rounded-lg bg-orange-600/20 text-orange-400 flex items-center justify-center font-bold text-xs border border-orange-500/30 shrink-0">
+              <User className="w-4 h-4 text-orange-400" />
             </div>
             {(!collapsed || mobileOpen) && (
-              <div className="flex flex-col min-w-0">
+              <div className="flex flex-col min-w-0 flex-1">
                 <span className="text-xs font-bold text-white truncate leading-none">
-                  Officer S. Sharma
+                  {currentUser.name}
                 </span>
-                <span className="text-[10px] text-slate-400 truncate mt-0.5">
-                  SDMA Emergency Desk
+                <span className="text-[10px] text-orange-400 font-mono truncate mt-0.5">
+                  {currentUser.role} • {currentUser.designation}
                 </span>
               </div>
             )}
           </div>
-        </div>
+        </button>
       </div>
     </aside>
+
+    {/* Role Switcher Modal for Judges */}
+    <RoleSwitcherModal
+      isOpen={showRoleModal}
+      onClose={() => setShowRoleModal(false)}
+    />
     </>
   );
 };

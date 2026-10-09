@@ -26,6 +26,8 @@ import { Link } from 'react-router-dom';
 import { geocodingService } from '../../services/geocodingService';
 import { SearchedLocation } from '../../types/map';
 import { HazardType, HAZARD_PROFILES } from '../../types/multiHazard';
+import { useAuth } from '../../context/AuthContext';
+import { RoleSwitcherModal } from '../common/RoleSwitcherModal';
 
 interface TopNavbarProps {
   collapsed: boolean;
@@ -50,12 +52,15 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
     clearSearchedLocation,
   } = useApp();
 
+  const { currentUser } = useAuth();
   const { t } = useTranslation();
 
   const [showStationDropdown, setShowStationDropdown] = useState(false);
   const [showHazardDropdown, setShowHazardDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showSosModal, setShowSosModal] = useState(false);
+  const [showRoleModal, setShowRoleModal] = useState(false);
+
 
   // Global Location Search State
   const [inputQuery, setInputQuery] = useState<string>('');
@@ -555,6 +560,17 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
               <p className="text-xs font-bold text-slate-800 leading-none">Mission Control</p>
             </div>
           </Link>
+
+          {/* Persona / RBAC Switcher for Judges */}
+          <button
+            onClick={() => setShowRoleModal(true)}
+            className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 transition-colors shrink-0"
+            title={`Active Persona: ${currentUser.name} (${currentUser.role}) — Click to switch RBAC Persona`}
+          >
+            <div className="w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-emerald-300" />
+            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">{currentUser.role}</span>
+            <ChevronDown className="w-3 h-3 text-slate-500 shrink-0" />
+          </button>
         </div>
       </div>
 
@@ -603,6 +619,12 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
       <EmergencySOSModal
         isOpen={showSosModal}
         onClose={() => setShowSosModal(false)}
+      />
+
+      {/* RBAC Persona Switcher Modal for Judges */}
+      <RoleSwitcherModal
+        isOpen={showRoleModal}
+        onClose={() => setShowRoleModal(false)}
       />
     </header>
   );
