@@ -9,25 +9,22 @@ import {
   Radio,
   X,
   Loader2,
-  CheckCircle2,
-  AlertCircle,
-  Globe,
   AlertOctagon,
   SlidersHorizontal,
   ArrowRight,
+  Globe,
+  Flame,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { MONITORED_STATIONS } from '../../utils/constants';
-import { DemoModeToggle } from '../common/DemoModeToggle';
 import { SystemStatusIndicator } from '../common/SystemStatus';
 import { EmergencySOSModal } from '../common/EmergencySOSModal';
 import { LanguageSelector } from '../common/LanguageSelector';
-import { DemoTourButton } from '../demo/DemoTourButton';
 import { useTranslation } from '../../i18n';
 import { Link } from 'react-router-dom';
 import { geocodingService } from '../../services/geocodingService';
 import { SearchedLocation } from '../../types/map';
-import { HazardType, HAZARD_PROFILES } from '../../types/multiHazard';
+import { HAZARD_PROFILES } from '../../types/multiHazard';
 import { useAuth } from '../../context/AuthContext';
 import { RoleSwitcherModal } from '../common/RoleSwitcherModal';
 
@@ -51,33 +48,46 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
     selectGlobalLocation,
     selectTelemetryStation,
     getNearestTelemetryStation,
-    clearSearchedLocation,
   } = useApp();
 
   const { currentUser } = useAuth();
   const { t } = useTranslation();
 
+  // Dropdown & Modal states
   const [showStationDropdown, setShowStationDropdown] = useState(false);
   const [showHazardDropdown, setShowHazardDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showSosModal, setShowSosModal] = useState(false);
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [showUtilityMenu, setShowUtilityMenu] = useState(false);
-
+  const [showSearchModal, setShowSearchModal] = useState(false);
 
   // Global Location Search State
   const [inputQuery, setInputQuery] = useState<string>('');
   const [suggestions, setSuggestions] = useState<SearchedLocation[]>([]);
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const [showSuggestionsDropdown, setShowSuggestionsDropdown] = useState<boolean>(false);
 
-  const searchContainerRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Nearest telemetry station calculation if active location is not monitored
-  const nearestStn = !activeLocation.isMonitored
-    ? getNearestTelemetryStation(activeLocation.lat, activeLocation.lng)
-    : null;
+  // Keyboard shortcut: Ctrl+K or Cmd+K to open Search modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setShowSearchModal((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Autofocus search input when search modal opens
+  useEffect(() => {
+    if (showSearchModal) {
+      setTimeout(() => searchInputRef.current?.focus(), 50);
+    }
+  }, [showSearchModal]);
 
   // Debounced geocoding search
   useEffect(() => {
@@ -101,7 +111,6 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
       try {
         const results = await geocodingService.searchLocations(trimmed);
         setSuggestions(results);
-        setShowSuggestionsDropdown(true);
         if (results.length === 0) {
           setSearchError(`No locations found for "${trimmed}"`);
         }
@@ -116,47 +125,25 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
     return () => clearTimeout(timer);
   }, [inputQuery, activeLocation]);
 
-  // Handle outside click to close suggestions
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (
-        searchContainerRef.current &&
-        !searchContainerRef.current.contains(e.target as Node)
-      ) {
-        setShowSuggestionsDropdown(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
   const handleSelectSuggestion = (loc: SearchedLocation) => {
     selectGlobalLocation(loc);
-    setInputQuery(loc.name);
-    setShowSuggestionsDropdown(false);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && suggestions.length > 0) {
-      e.preventDefault();
-      handleSelectSuggestion(suggestions[0]);
-    }
-  };
-
-  const handleClear = () => {
     setInputQuery('');
     setSuggestions([]);
-    setShowSuggestionsDropdown(false);
-    clearSearchedLocation();
+    setShowSearchModal(false);
   };
+
+  // Nearest telemetry station calculation if active location is not monitored
+  const nearestStn = !activeLocation.isMonitored
+    ? getNearestTelemetryStation(activeLocation.lat, activeLocation.lng)
+    : null;
 
   return (
     <header className="sticky top-0 z-30 bg-white border-b border-slate-200 shadow-2xs w-full max-w-full min-w-0">
-      {/* Primary Navigation Row: 4 Clean Semantic Flexbox Groups */}
-      <div className="h-14 sm:h-16 px-2.5 sm:px-4 lg:px-6 flex items-center justify-between gap-2 lg:gap-3 xl:gap-4 w-full min-w-0 box-border">
+      {/* Primary Navigation Row: 3 Clean Desktop Groups (Left, Center, Right) */}
+      <div className="h-14 sm:h-16 px-2.5 sm:px-4 lg:px-6 flex items-center justify-between gap-2 sm:gap-3 lg:gap-4 w-full min-w-0 box-border">
 
         {/* ========================================================================= */}
-        {/* GROUP 1: Menu and Location                                                */}
+        {/* GROUP 1: LEFT (Hamburger Menu + Location Selector + Search)               */}
         {/* ========================================================================= */}
         <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0 min-w-0">
           {/* Hamburger Sidebar Trigger */}
@@ -185,7 +172,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             </span>
           </div>
 
-          {/* Location Selector (Desktop/Tablet) */}
+          {/* Location Selector (Desktop/Tablet) — Distinct & Non-Overlapping */}
           <div className="relative hidden sm:block shrink-0">
             <button
               onClick={() => {
@@ -194,7 +181,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
                 setShowNotifications(false);
                 setShowUtilityMenu(false);
               }}
-              className={`flex items-center gap-1.5 h-9 px-2.5 sm:px-3 rounded-lg border text-xs font-bold transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 h-9 px-2.5 sm:px-3 rounded-lg border text-xs font-bold transition-all cursor-pointer shrink-0 ${
                 activeLocation.isMonitored
                   ? 'border-orange-200 bg-orange-50/70 hover:bg-orange-100 text-orange-950'
                   : 'border-blue-200 bg-blue-50/70 hover:bg-blue-100 text-blue-950'
@@ -203,12 +190,13 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
               aria-label="Active Geographic Location"
             >
               <MapPin className={`w-3.5 h-3.5 shrink-0 ${activeLocation.isMonitored ? 'text-orange-600' : 'text-blue-600'}`} />
-              <span className="truncate max-w-[100px] md:max-w-[140px] lg:max-w-[180px] xl:max-w-[210px]">
+              <span className="truncate max-w-[110px] md:max-w-[150px] lg:max-w-[180px] xl:max-w-[210px]">
                 {activeLocation.name}
               </span>
               <ChevronDown className={`w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform ${showStationDropdown ? 'rotate-180' : ''}`} />
             </button>
 
+            {/* Station Picker Dropdown Menu */}
             {showStationDropdown && (
               <>
                 <div
@@ -251,7 +239,6 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
                           key={stn.id}
                           onClick={() => {
                             selectTelemetryStation(stn);
-                            setInputQuery('');
                             setShowStationDropdown(false);
                           }}
                           className={`w-full text-left px-3.5 py-2 text-xs hover:bg-slate-50 flex items-center justify-between transition-colors cursor-pointer ${
@@ -283,159 +270,77 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
               </>
             )}
           </div>
-        </div>
 
-        {/* ========================================================================= */}
-        {/* GROUP 2: Search and Language                                              */}
-        {/* ========================================================================= */}
-        <div className="hidden md:flex items-center gap-2 flex-1 max-w-md min-w-0">
-          {/* Global Geocoding Search Bar */}
-          <div ref={searchContainerRef} className="relative flex-1 min-w-[140px]">
-            <div className="relative flex items-center">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 shrink-0 pointer-events-none" />
-              <input
-                type="text"
-                placeholder={t('app.searchPlaceholder', 'Search city or town (e.g. Munnar, Manali)...')}
-                value={inputQuery}
-                onChange={(e) => {
-                  setInputQuery(e.target.value);
-                  setShowSuggestionsDropdown(true);
-                }}
-                onKeyDown={handleKeyDown}
-                onFocus={() => {
-                  if (suggestions.length > 0 || searchError) {
-                    setShowSuggestionsDropdown(true);
-                  }
-                }}
-                className="w-full h-9 pl-8 pr-7 py-1.5 text-xs bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all font-medium placeholder:text-slate-400 truncate"
-              />
-
-              {/* Clear button or Spinner */}
-              {isSearching ? (
-                <Loader2 className="w-3.5 h-3.5 text-orange-600 animate-spin absolute right-2.5 top-1/2 -translate-y-1/2" />
-              ) : inputQuery.length > 0 ? (
-                <button
-                  onClick={handleClear}
-                  className="p-0.5 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-200 absolute right-2 top-1/2 -translate-y-1/2 transition-colors cursor-pointer"
-                  title="Clear Search"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              ) : null}
-            </div>
-
-            {/* Autocomplete Suggestions Dropdown */}
-            {showSuggestionsDropdown && (inputQuery.trim().length >= 2 || suggestions.length > 0 || isSearching) && (
-              <div className="absolute left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-slate-200 py-2 z-50 animate-in fade-in zoom-in-95 duration-150 max-h-80 overflow-y-auto min-w-[260px]">
-                {isSearching && (
-                  <div className="px-4 py-3 text-xs text-slate-500 flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 text-orange-600 animate-spin" />
-                    <span>Searching geographic locations...</span>
-                  </div>
-                )}
-
-                {!isSearching && suggestions.length > 0 && (
-                  <div>
-                    <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 mb-1 flex items-center justify-between">
-                      <span>Geographic Places</span>
-                      <span className="font-mono text-[9px]">OpenStreetMap & GIS</span>
-                    </div>
-
-                    {suggestions.map((loc, idx) => (
-                      <button
-                        key={loc.placeId || idx}
-                        onClick={() => handleSelectSuggestion(loc)}
-                        className="w-full text-left px-3.5 py-2 hover:bg-slate-50 flex items-start justify-between gap-2 transition-colors border-b border-slate-100 last:border-0 cursor-pointer"
-                      >
-                        <div className="flex items-start gap-2 min-w-0">
-                          <div className={`p-1 rounded-md shrink-0 mt-0.5 ${
-                            loc.isMonitored ? 'bg-orange-100 text-orange-700' : 'bg-blue-50 text-blue-600'
-                          }`}>
-                            <MapPin className="w-3.5 h-3.5" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-bold text-xs text-slate-900 truncate">
-                              {loc.name}
-                            </p>
-                            <p className="text-[10px] text-slate-500 line-clamp-1">
-                              {loc.displayName || loc.address}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="shrink-0 text-right">
-                          {loc.isMonitored ? (
-                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-800 border border-orange-200">
-                              IoT ({loc.monitoredStation?.riskScore})
-                            </span>
-                          ) : (
-                            <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
-                              GIS
-                            </span>
-                          )}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {!isSearching && suggestions.length === 0 && searchError && (
-                  <div className="px-4 py-3 text-xs text-slate-500 flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
-                    <span>{searchError}</span>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Language Selector (Always visible on desktop lg+) */}
-          <div className="hidden lg:block shrink-0">
-            <LanguageSelector />
-          </div>
-        </div>
-
-        {/* ========================================================================= */}
-        {/* GROUP 3: System Status and Control-Center Branding                        */}
-        {/* ========================================================================= */}
-        <div className="hidden xl:flex items-center gap-3 shrink-0">
-          {/* System Operational Status Dropdown */}
-          <SystemStatusIndicator variant="badge" />
-
-          {/* NDMA Operations / Control Center 01 Branding */}
-          <Link
-            to="/mission-control"
-            className="flex items-center gap-2 pl-3 border-l border-slate-200 hover:opacity-85 transition-opacity"
-            title="Open NDMA Operations — Disaster Management Mission Control Center"
+          {/* Search Trigger (Desktop quick input trigger / icon) */}
+          <button
+            onClick={() => setShowSearchModal(true)}
+            className="hidden xl:flex items-center gap-2 h-9 px-2.5 lg:px-3 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-500 text-xs font-medium transition-colors cursor-pointer shrink-0"
+            title="Search any city or station across India (Ctrl+K)"
+            aria-label="Search geographic locations"
           >
-            <div className="w-8 h-8 rounded-lg bg-orange-100 text-orange-700 flex items-center justify-center font-bold text-xs border border-orange-200 shrink-0 shadow-2xs">
-              <Shield className="w-4 h-4" />
-            </div>
-            <div className="text-left min-w-0">
-              <p className="text-xs font-bold text-slate-800 leading-none truncate">{t('app.ndmaOperations', 'NDMA Operations')}</p>
-              <p className="text-[10px] text-slate-400 mt-0.5 truncate">{t('app.controlCenter', 'Control Center 01')}</p>
-            </div>
-          </Link>
+            <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <span className="truncate max-w-[110px] 2xl:max-w-[150px]">{t('app.search', 'Search location...')}</span>
+            <kbd className="hidden 2xl:inline px-1 py-0.5 text-[9px] font-mono bg-slate-200/70 text-slate-500 rounded">Ctrl K</kbd>
+          </button>
+
+          <button
+            onClick={() => setShowSearchModal(true)}
+            className="xl:hidden hidden sm:flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-500 transition-colors cursor-pointer shrink-0"
+            title="Search geographic location"
+            aria-label="Search geographic location"
+          >
+            <Search className="w-3.5 h-3.5 text-slate-400" />
+          </button>
         </div>
 
         {/* ========================================================================= */}
-        {/* GROUP 4: Emergency SOS, Notifications, and Admin Profile                  */}
+        {/* GROUP 2: CENTER (Emergency SOS + Language Selector + System Operational)   */}
         {/* ========================================================================= */}
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 justify-end">
-          {/* 1. Emergency SOS Button (Replaces DEMO MODE ACTIVE, Always Visible) */}
+        <div className="flex items-center justify-center gap-2 sm:gap-2.5 lg:gap-3 min-w-0">
+          {/* 1. Emergency SOS Button (Replaces DEMO MODE ACTIVE, Prominent bg-red-600) */}
           <button
             onClick={() => setShowSosModal(true)}
-            className="h-9 px-2.5 sm:px-3 rounded-lg bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-extrabold text-xs uppercase tracking-wider flex items-center gap-1 sm:gap-1.5 shadow-md shadow-red-600/30 ring-2 ring-red-400/40 hover:ring-red-400/70 transition-all cursor-pointer shrink-0 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+            className="h-9 px-2.5 sm:px-3.5 rounded-lg bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-extrabold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-md shadow-red-600/30 ring-2 ring-red-400/40 hover:ring-red-400/70 transition-all cursor-pointer shrink-0 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
             title={t('sos.title', 'Trigger Emergency Distress SOS Signal')}
             aria-label="Emergency SOS Distress Signal"
           >
             <AlertOctagon className="w-4 h-4 text-white shrink-0 animate-pulse" />
             <span className="hidden sm:inline whitespace-nowrap">{t('sos.trigger', 'EMERGENCY SOS')}</span>
-            <span className="sm:hidden whitespace-nowrap">SOS</span>
+            <span className="sm:hidden whitespace-nowrap font-black">SOS</span>
           </button>
 
-          {/* 2. Platform Utilities Overflow Menu (For < xl or mobile) */}
-          <div className="relative xl:hidden shrink-0">
+          {/* 2. Language Selector (Visible on Desktop md+) */}
+          <div className="hidden md:block shrink-0">
+            <LanguageSelector />
+          </div>
+
+          {/* 3. System Operational Status Dropdown (Visible on Desktop lg+) */}
+          <div className="hidden lg:block shrink-0">
+            <SystemStatusIndicator variant="badge" />
+          </div>
+        </div>
+
+        {/* ========================================================================= */}
+        {/* GROUP 3: RIGHT (NDMA Branding + Notifications + Admin Profile)             */}
+        {/* ========================================================================= */}
+        <div className="flex items-center justify-end gap-1.5 sm:gap-2 lg:gap-2.5 shrink-0 min-w-0">
+          {/* 1. NDMA Operations / Control Center 01 Branding (Visible on Desktop md+) */}
+          <Link
+            to="/mission-control"
+            className="hidden md:flex items-center gap-2 h-9 px-2 sm:px-2.5 rounded-lg border border-transparent hover:border-slate-200 hover:bg-slate-50 transition-all shrink-0"
+            title="Open NDMA Operations — Disaster Management Mission Control Center"
+          >
+            <div className="w-7 h-7 rounded-lg bg-orange-100 text-orange-700 flex items-center justify-center font-bold text-xs border border-orange-200 shrink-0 shadow-2xs">
+              <Shield className="w-3.5 h-3.5" />
+            </div>
+            <div className="text-left min-w-0 hidden lg:block">
+              <p className="text-xs font-bold text-slate-800 leading-none truncate">{t('app.ndmaOperations', 'NDMA Operations')}</p>
+              <p className="text-[10px] text-slate-400 mt-0.5 truncate">{t('app.controlCenter', 'Control Center 01')}</p>
+            </div>
+          </Link>
+
+          {/* 2. Platform Utilities Overflow Menu (Gracefully collapses Language & Status when < lg) */}
+          <div className="relative lg:hidden shrink-0">
             <button
               onClick={() => {
                 setShowUtilityMenu(!showUtilityMenu);
@@ -443,16 +348,15 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
                 setShowStationDropdown(false);
                 setShowHazardDropdown(false);
               }}
-              className={`h-9 px-2 sm:px-2.5 rounded-lg border text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer ${
+              className={`h-9 px-2 sm:px-2.5 rounded-lg border text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer shrink-0 ${
                 showUtilityMenu
                   ? 'bg-slate-200 border-slate-300 text-slate-900'
                   : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700 shadow-2xs'
               }`}
-              title="Platform Utilities: Language, Telemetry Health, Demo Tools & Mission Control"
+              title="Platform Utilities: Language & Telemetry Health"
               aria-label="Platform Utilities Menu"
             >
               <SlidersHorizontal className="w-3.5 h-3.5 text-slate-600 shrink-0" />
-              <span className="hidden md:inline font-semibold text-xs">Tools</span>
               <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform ${showUtilityMenu ? 'rotate-180' : ''}`} />
             </button>
 
@@ -478,13 +382,13 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
                     </button>
                   </div>
 
-                  {/* Language Selector (inside tools when < lg) */}
-                  <div className="lg:hidden space-y-1">
+                  {/* Language Selector (inside overflow when < md) */}
+                  <div className="md:hidden space-y-1">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Language</span>
                     <LanguageSelector className="w-full" />
                   </div>
 
-                  {/* System Telemetry Status (inside tools when < xl) */}
+                  {/* System Telemetry Status (inside overflow when < lg) */}
                   <div className="space-y-1">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">System Telemetry Health</span>
                     <div>
@@ -492,24 +396,8 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
                     </div>
                   </div>
 
-                  {/* Demo Mode Toggle (Moved out of header to tools) */}
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Simulation Data Feed</span>
-                    <div>
-                      <DemoModeToggle />
-                    </div>
-                  </div>
-
-                  {/* Start Project Demo walkthrough button */}
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Interactive Walkthrough</span>
-                    <div>
-                      <DemoTourButton variant="compact" className="w-full justify-center" />
-                    </div>
-                  </div>
-
-                  {/* Mission Control Link (inside tools when < xl) */}
-                  <div className="pt-2 border-t border-slate-100">
+                  {/* Mission Control Link (inside overflow when < md) */}
+                  <div className="pt-2 border-t border-slate-100 md:hidden">
                     <Link
                       to="/mission-control"
                       onClick={() => setShowUtilityMenu(false)}
@@ -536,7 +424,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
                 setShowHazardDropdown(false);
                 setShowUtilityMenu(false);
               }}
-              className="h-9 w-9 flex items-center justify-center rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors relative cursor-pointer"
+              className="h-9 w-9 flex items-center justify-center rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors relative cursor-pointer shrink-0"
               title={t('app.notifications', 'Emergency Alerts')}
               aria-label="Emergency Alerts Notifications"
             >
@@ -620,7 +508,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             setShowStationDropdown(!showStationDropdown);
             setShowHazardDropdown(false);
           }}
-          className={`flex-1 flex items-center justify-between gap-1 px-2 py-1 rounded-md border text-[11px] font-bold min-w-0 truncate ${
+          className={`flex-1 flex items-center justify-between gap-1 px-2 py-1 rounded-md border text-[11px] font-bold min-w-0 truncate cursor-pointer ${
             activeLocation.isMonitored
               ? 'border-orange-200 bg-orange-50 text-orange-950'
               : 'border-blue-200 bg-blue-50 text-blue-950'
@@ -640,7 +528,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             setShowHazardDropdown(!showHazardDropdown);
             setShowStationDropdown(false);
           }}
-          className="flex-1 flex items-center justify-between gap-1 px-2 py-1 rounded-md border border-slate-200 bg-white text-slate-800 text-[11px] font-bold min-w-0 truncate"
+          className="flex-1 flex items-center justify-between gap-1 px-2 py-1 rounded-md border border-slate-200 bg-white text-slate-800 text-[11px] font-bold min-w-0 truncate cursor-pointer"
           title="Switch Hazard Mode"
         >
           <div className="flex items-center gap-1 min-w-0 truncate">
@@ -650,6 +538,130 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
           <ChevronDown className="w-3 h-3 text-slate-400 shrink-0" />
         </button>
       </div>
+
+      {/* ========================================================================= */}
+      {/* GLOBAL SEARCH DIALOG / MODAL                                              */}
+      {/* ========================================================================= */}
+      {showSearchModal && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-20 px-3 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-150">
+          <div
+            className="fixed inset-0"
+            onClick={() => setShowSearchModal(false)}
+          />
+          <div className="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-10 animate-in zoom-in-95 duration-150">
+            {/* Search Input Bar */}
+            <div className="p-3 sm:p-4 border-b border-slate-100 flex items-center gap-2.5">
+              <Search className="w-5 h-5 text-orange-600 shrink-0" />
+              <input
+                ref={searchInputRef}
+                type="text"
+                placeholder={t('app.searchPlaceholder', 'Search any city, town, or station across India (e.g. Munnar, Wayanad)...')}
+                value={inputQuery}
+                onChange={(e) => setInputQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    setShowSearchModal(false);
+                  } else if (e.key === 'Enter' && suggestions.length > 0) {
+                    handleSelectSuggestion(suggestions[0]);
+                  }
+                }}
+                className="flex-1 text-sm bg-transparent outline-none font-medium placeholder:text-slate-400 text-slate-900"
+              />
+              {isSearching ? (
+                <Loader2 className="w-4 h-4 text-orange-600 animate-spin shrink-0" />
+              ) : inputQuery.length > 0 ? (
+                <button
+                  onClick={() => setInputQuery('')}
+                  className="p-1 rounded text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              ) : (
+                <kbd className="hidden sm:inline px-1.5 py-0.5 text-[10px] font-mono bg-slate-100 border border-slate-200 text-slate-500 rounded">ESC</kbd>
+              )}
+            </div>
+
+            {/* Results or Suggestions List */}
+            <div className="max-h-80 overflow-y-auto divide-y divide-slate-100">
+              {isSearching && (
+                <div className="px-5 py-6 text-center text-xs text-slate-500 flex items-center justify-center gap-2">
+                  <Loader2 className="w-4 h-4 text-orange-600 animate-spin" />
+                  <span>Searching geographic locations via OpenStreetMap GIS...</span>
+                </div>
+              )}
+
+              {!isSearching && suggestions.length > 0 && (
+                <div>
+                  <div className="px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-slate-50 flex items-center justify-between">
+                    <span>Search Results</span>
+                    <span className="font-mono text-[9px]">Press Enter to select</span>
+                  </div>
+                  {suggestions.map((loc, idx) => (
+                    <button
+                      key={loc.placeId || idx}
+                      onClick={() => handleSelectSuggestion(loc)}
+                      className="w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-start justify-between gap-2.5 transition-colors cursor-pointer"
+                    >
+                      <div className="flex items-start gap-2.5 min-w-0">
+                        <div className={`p-1.5 rounded-lg shrink-0 mt-0.5 ${
+                          loc.isMonitored ? 'bg-orange-100 text-orange-700' : 'bg-blue-50 text-blue-600'
+                        }`}>
+                          <MapPin className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-bold text-xs text-slate-900 truncate">{loc.name}</p>
+                          <p className="text-[11px] text-slate-500 line-clamp-1">{loc.displayName || loc.address}</p>
+                        </div>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        {loc.isMonitored ? (
+                          <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-800 border border-orange-200">
+                            IoT Monitored
+                          </span>
+                        ) : (
+                          <span className="text-[9px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                            GIS Region
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {!isSearching && suggestions.length === 0 && searchError && (
+                <div className="px-5 py-6 text-center text-xs text-slate-500">
+                  <p className="text-amber-600 font-semibold mb-1">{searchError}</p>
+                  <p className="text-slate-400 text-[11px]">Try searching a major district or state: Munnar, Wayanad, Shimla, Nilgiris.</p>
+                </div>
+              )}
+
+              {!isSearching && suggestions.length === 0 && !searchError && (
+                <div className="p-4 bg-slate-50/50">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+                    Quick Picks — Monitored High Risk Telemetry Stations
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                    {MONITORED_STATIONS.slice(0, 8).map((stn) => (
+                      <button
+                        key={stn.id}
+                        onClick={() => {
+                          selectTelemetryStation(stn);
+                          setShowSearchModal(false);
+                        }}
+                        className="px-2 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-orange-50 hover:border-orange-300 text-left transition-colors cursor-pointer truncate"
+                      >
+                        <p className="text-xs font-bold text-slate-800 truncate">{stn.name}</p>
+                        <p className="text-[10px] text-slate-400 truncate">{stn.state}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Emergency SOS Modal */}
       <EmergencySOSModal

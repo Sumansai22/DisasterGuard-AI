@@ -38,7 +38,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
         onClick={() => setIsOpen(!isOpen)}
         aria-label={t('app.selectLanguage', 'Select language')}
         aria-expanded={isOpen}
-        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-800 text-xs font-bold transition-all shadow-2xs cursor-pointer"
+        className="flex items-center gap-1.5 h-9 px-2.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-800 text-xs font-bold transition-all shadow-2xs cursor-pointer shrink-0"
       >
         <Globe className="w-3.5 h-3.5 text-slate-500 shrink-0" />
         <span className="font-semibold text-slate-700 hidden md:inline truncate max-w-[75px] xl:max-w-[95px]">{currentLanguageOption.nativeName}</span>
