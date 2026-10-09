@@ -19,6 +19,7 @@ import { AlertsPage } from './pages/Alerts';
 import { HistoricalPage } from './pages/Historical';
 import { AnalyticsPage } from './pages/Analytics';
 import { AdminPage } from './pages/Admin';
+import { FeedbackPage } from './pages/FeedbackPage';
 import { MissionControlPage } from './pages/MissionControl';
 import { DamageAssessmentPage } from './pages/DamageAssessmentPage';
 import { FieldInspectorPage } from './pages/FieldInspectorPage';
@@ -61,6 +62,7 @@ export const App: React.FC = () => {
                     <Route path="evacuation" element={<EvacuationPage />} />
                     <Route path="alerts" element={<AlertsPage />} />
                     <Route path="historical" element={<HistoricalPage />} />
+                    <Route path="feedback" element={<FeedbackPage />} />
                     <Route path="analytics" element={<AnalyticsPage />} />
                     <Route path="admin" element={<AdminPage />} />
                     <Route path="*" element={<Navigate to="/" replace />} />

@@ -14,6 +14,9 @@ import {
 import { SafeZoneCard } from '../components/evacuation/SafeZoneCard';
 import { RouteDetailsCard } from '../components/evacuation/RouteDetailsCard';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
+import { SortOption, SortDirection, sortData } from '../types/sorting';
+import { SortingToolbar } from '../components/common/SortingToolbar';
+import { useFeedback } from '../context/FeedbackContext';
 import {
   Navigation,
   MapPin,
@@ -58,11 +61,51 @@ function MapRecenter({ center }: { center: [number, number] }) {
   return null;
 }
 
+const SHELTER_SORT_OPTIONS: SortOption<SafeZone>[] = [
+  {
+    key: 'availableCapacity',
+    label: 'Available Capacity',
+    directionLabels: { desc: 'Most Available', asc: 'Least Available' },
+    getValue: (sz: SafeZone) => sz.availableCapacity ?? sz.available_capacity ?? (sz.capacityTotal - sz.capacityOccupied),
+    defaultDirection: 'desc',
+  },
+  {
+    key: 'capacityTotal',
+    label: 'Total Capacity',
+    directionLabels: { desc: 'Largest', asc: 'Smallest' },
+    getValue: (sz: SafeZone) => sz.capacityTotal ?? sz.capacity ?? 0,
+    defaultDirection: 'desc',
+  },
+  {
+    key: 'name',
+    label: 'Shelter Name',
+    directionLabels: { asc: 'A → Z', desc: 'Z → A' },
+    getValue: (sz: SafeZone) => sz.name,
+    defaultDirection: 'asc',
+  },
+  {
+    key: 'distanceKm',
+    label: 'Distance',
+    directionLabels: { asc: 'Nearest First', desc: 'Farthest First' },
+    getValue: (sz: SafeZone) => sz.distanceKm ?? sz.distance_km ?? 0,
+    defaultDirection: 'asc',
+  },
+];
+
 export const EvacuationPage: React.FC = () => {
   const { activeLocation } = useApp();
+  const { showSuccess } = useFeedback();
   const [safeZones, setSafeZones] = useState<SafeZone[]>([]);
   const [hazardZones, setHazardZones] = useState<HazardZoneInfo[]>([]);
   const [isLoadingShelters, setIsLoadingShelters] = useState<boolean>(false);
+  const [shelterSortKey, setShelterSortKey] = useState<string>('availableCapacity');
+  const [shelterSortDirection, setShelterSortDirection] = useState<SortDirection>('desc');
+
+  // Sorted safe zones memo
+  const sortedSafeZones = useMemo(() => {
+    const activeOption = SHELTER_SORT_OPTIONS.find((opt) => opt.key === shelterSortKey) || SHELTER_SORT_OPTIONS[0];
+    return sortData(safeZones, activeOption, shelterSortDirection);
+  }, [safeZones, shelterSortKey, shelterSortDirection]);
 
   // FROM & TO Search State
   const [fromQuery, setFromQuery] = useState<string>('');
@@ -849,6 +892,22 @@ export const EvacuationPage: React.FC = () => {
               )}
             </div>
 
+            {/* Shelter Sorting Toolbar */}
+            {safeZones.length > 1 && (
+              <SortingToolbar<SafeZone>
+                sortOptions={SHELTER_SORT_OPTIONS}
+                activeSortKey={shelterSortKey}
+                activeDirection={shelterSortDirection}
+                onSortChange={(key, dir) => {
+                  setShelterSortKey(key);
+                  setShelterSortDirection(dir);
+                }}
+                defaultSortKey="availableCapacity"
+                defaultDirection="desc"
+                className="py-1"
+              />
+            )}
+
             {isLoadingShelters ? (
               <div className="p-6 text-center text-xs text-slate-400">
                 Finding nearby emergency shelters for {fromLocation?.name || 'location'}...
@@ -881,7 +940,7 @@ export const EvacuationPage: React.FC = () => {
               </div>
             ) : (
               <div className="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
-                {safeZones.map((sz) => (
+                {sortedSafeZones.map((sz) => (
                   <SafeZoneCard
                     key={sz.id}
                     safeZone={sz}

@@ -21,6 +21,7 @@ import {
   Compass,
   Users,
   Sliders,
+  MessageSquarePlus,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
@@ -90,6 +91,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       groupName: 'Records',
       items: [
         { name: 'Reports & History', path: '/historical', icon: History },
+        { name: 'User Feedback', path: '/feedback', icon: MessageSquarePlus },
       ],
     },
     ...(currentUser.role === 'ADMIN'

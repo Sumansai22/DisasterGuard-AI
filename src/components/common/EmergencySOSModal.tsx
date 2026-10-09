@@ -23,7 +23,7 @@ interface EmergencySOSModalProps {
   affectedRadiusKm?: number;
 }
 
-type SOSStep = 'CONFIG' | 'TRANSMITTING' | 'ACTIVATED';
+type SOSStep = 'CONFIG' | 'CONFIRM' | 'TRANSMITTING' | 'ACTIVATED' | 'ERROR';
 
 export const EmergencySOSModal: React.FC<EmergencySOSModalProps> = ({
   isOpen,
@@ -37,6 +37,7 @@ export const EmergencySOSModal: React.FC<EmergencySOSModalProps> = ({
   const [personsCount, setPersonsCount] = useState(1);
   const [contactPhone, setContactPhone] = useState('');
   const [notes, setNotes] = useState('');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
   // Geolocation state
   const [geoStatus, setGeoStatus] = useState<'ACQUIRING' | 'GPS_LOCKED' | 'FALLBACK_MAP'>('ACQUIRING');
@@ -55,6 +56,7 @@ export const EmergencySOSModal: React.FC<EmergencySOSModalProps> = ({
     if (!isOpen) {
       setStep('CONFIG');
       setIsSubmitting(false);
+      setErrorMessage(null);
       return;
     }
 
@@ -90,8 +92,14 @@ export const EmergencySOSModal: React.FC<EmergencySOSModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleTransmitSOS = async () => {
+  // Prompt confirmation dialog before transmission
+  const handleProceedToConfirm = () => {
+    setStep('CONFIRM');
+  };
+
+  const executeTransmitSOS = async () => {
     setIsSubmitting(true);
+    setErrorMessage(null);
     setStep('TRANSMITTING');
 
     if (isDemoMode) {
@@ -124,20 +132,26 @@ export const EmergencySOSModal: React.FC<EmergencySOSModalProps> = ({
         incident?: { id: string };
         estimated_eta_minutes?: number;
         nearest_responder?: { name: string };
+        message?: string;
       }>('/v1/incidents/sos', payload);
 
-      if (res && res.data && res.data.incident) {
-        setIncidentId(res.data.incident.id);
+      if (res && res.data && (res.data.status === 'success' || res.data.incident)) {
+        setIncidentId(res.data.incident?.id || `INC-SOS-${Math.floor(1000 + Math.random() * 9000)}`);
         if (res.data.estimated_eta_minutes) setEtaMinutes(res.data.estimated_eta_minutes);
         if (res.data.nearest_responder?.name) setResponderName(res.data.nearest_responder.name);
+        setStep('ACTIVATED');
       } else {
-        setIncidentId(`INC-SOS-${Math.floor(1000 + Math.random() * 9000)}`);
+        throw new Error(res?.data?.message || 'Unexpected response format from emergency dispatch server');
       }
-      setStep('ACTIVATED');
-    } catch (err) {
-      console.error('Failed to transmit SOS to backend, generating local incident beacon:', err);
-      setIncidentId(`INC-SOS-${Math.floor(1000 + Math.random() * 9000)}`);
-      setStep('ACTIVATED');
+    } catch (err: any) {
+      console.error('Failed to transmit SOS to backend:', err);
+      const detail =
+        err?.response?.data?.detail ||
+        err?.response?.data?.message ||
+        err?.message ||
+        'Emergency dispatch API is currently unreachable. Direct helpline call required.';
+      setErrorMessage(detail);
+      setStep('ERROR');
     } finally {
       setIsSubmitting(false);
     }
@@ -279,9 +293,9 @@ export const EmergencySOSModal: React.FC<EmergencySOSModalProps> = ({
               />
             </div>
 
-            {/* Transmit Button */}
+            {/* Transmit Button (Opens Confirmation Step) */}
             <button
-              onClick={handleTransmitSOS}
+              onClick={handleProceedToConfirm}
               disabled={isSubmitting}
               className="w-full py-3.5 rounded-xl bg-red-600 hover:bg-red-500 active:bg-red-700 text-white font-extrabold text-sm uppercase tracking-wider shadow-lg shadow-red-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer"
             >
@@ -291,7 +305,74 @@ export const EmergencySOSModal: React.FC<EmergencySOSModalProps> = ({
           </div>
         )}
 
-        {/* Step 2: Transmitting State */}
+        {/* Step 2: Confirmation Dialog Step */}
+        {step === 'CONFIRM' && (
+          <div className="space-y-4 pt-4 animate-fade-in">
+            <div className="p-4 rounded-xl bg-red-950/40 border-2 border-red-500 text-white space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-red-600 text-white shrink-0 shadow-md">
+                  <AlertOctagon className="w-6 h-6 animate-pulse" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm sm:text-base text-white">
+                    Confirm Emergency SOS Broadcast
+                  </h3>
+                  <p className="text-xs text-red-200 mt-0.5">
+                    Please confirm before transmitting distress coordinates to emergency responders.
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-lg bg-slate-900/90 border border-red-900/60 text-xs space-y-2 font-mono">
+                <div className="flex justify-between items-center text-slate-300">
+                  <span className="text-slate-400">Target Location:</span>
+                  <span className="font-bold text-white truncate max-w-[200px]">
+                    {geoStatus === 'GPS_LOCKED'
+                      ? `${coords.lat.toFixed(4)}°N, ${coords.lng.toFixed(4)}°E`
+                      : activeLocation.name}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-slate-300">
+                  <span className="text-slate-400">Distress Category:</span>
+                  <span className="font-bold text-red-400">{emergencyType.replace(/_/g, ' ')}</span>
+                </div>
+                <div className="flex justify-between items-center text-slate-300">
+                  <span className="text-slate-400">Persons in Danger:</span>
+                  <span className="font-bold text-amber-300">{personsCount} Person(s)</span>
+                </div>
+                {contactPhone && (
+                  <div className="flex justify-between items-center text-slate-300">
+                    <span className="text-slate-400">Callback Phone:</span>
+                    <span className="font-bold text-emerald-400">{contactPhone}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-2.5 rounded-lg bg-amber-950/40 border border-amber-800/60 text-amber-200 text-xs">
+                ⚠️ <strong>Priority 1 Dispatch Alert:</strong> Generating a fraudulent or false distress call is punishable under National Disaster Management regulations.
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                onClick={() => setStep('CONFIG')}
+                className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs border border-slate-700 transition-colors"
+              >
+                Back / Edit Details
+              </button>
+              <button
+                onClick={executeTransmitSOS}
+                disabled={isSubmitting}
+                className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 active:bg-red-700 text-white font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-red-600/30 flex items-center justify-center gap-1.5 transition-all"
+              >
+                <Radio className="w-4 h-4 animate-pulse" />
+                <span>Confirm & Broadcast</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 3: Transmitting State */}
         {step === 'TRANSMITTING' && (
           <div className="py-12 flex flex-col items-center justify-center space-y-4 text-center">
             <Loader2 className="w-12 h-12 text-red-500 animate-spin" />
@@ -302,7 +383,93 @@ export const EmergencySOSModal: React.FC<EmergencySOSModalProps> = ({
           </div>
         )}
 
-        {/* Step 3: Activated Tracking Dashboard */}
+        {/* Step 4: Error State (API Unreachable or Failed) */}
+        {step === 'ERROR' && (
+          <div className="space-y-4 pt-4 animate-fade-in">
+            <div className="p-4 rounded-xl bg-red-950/80 border-2 border-red-600 text-white space-y-3">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-6 h-6 text-red-400 shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="text-sm font-extrabold text-white">
+                    Emergency Dispatch Service Transmission Failed
+                  </h4>
+                  <p className="text-xs text-red-200 mt-1">
+                    {errorMessage || 'The automated emergency dispatch service could not be reached.'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-lg bg-black/40 border border-red-800 text-xs text-slate-300">
+                <p className="font-bold text-amber-300 mb-1">IMMEDIATE ACTION REQUIRED:</p>
+                <p className="text-slate-300 text-[11px]">
+                  Do not rely solely on automated broadcast when offline. Dial official emergency phone helplines directly:
+                </p>
+              </div>
+            </div>
+
+            {/* Official Helplines */}
+            <div className="p-3 rounded-xl bg-slate-800 border border-slate-700">
+              <div className="text-[10px] font-mono uppercase text-slate-400 font-bold mb-2">
+                DIRECT EMERGENCY CALL HOTLINES
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+                <a
+                  href="tel:112"
+                  className="p-2.5 rounded-lg bg-red-900/60 hover:bg-red-800/80 border border-red-700 flex items-center justify-between transition-colors text-white"
+                >
+                  <span className="font-bold">National Helpline</span>
+                  <strong className="text-white text-sm">112</strong>
+                </a>
+                <a
+                  href="tel:1078"
+                  className="p-2.5 rounded-lg bg-red-900/60 hover:bg-red-800/80 border border-red-700 flex items-center justify-between transition-colors text-white"
+                >
+                  <span className="font-bold">NDRF Control</span>
+                  <strong className="text-white text-sm">1078</strong>
+                </a>
+                <a
+                  href="tel:108"
+                  className="p-2 rounded-lg bg-slate-700 hover:bg-slate-600 flex items-center justify-between transition-colors"
+                >
+                  <span className="text-slate-300">Ambulance</span>
+                  <strong className="text-emerald-400">108</strong>
+                </a>
+                <a
+                  href="tel:1070"
+                  className="p-2 rounded-lg bg-slate-700 hover:bg-slate-600 flex items-center justify-between transition-colors"
+                >
+                  <span className="text-slate-300">State Disaster</span>
+                  <strong className="text-sky-400">1070</strong>
+                </a>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => setStep('CONFIG')}
+                className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 transition-colors"
+              >
+                Edit & Retry
+              </button>
+              <button
+                onClick={executeTransmitSOS}
+                disabled={isSubmitting}
+                className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-extrabold transition-colors shadow-md shadow-red-600/30 flex items-center justify-center gap-1.5"
+              >
+                <Radio className="w-3.5 h-3.5" />
+                <span>Retry Transmission</span>
+              </button>
+              <button
+                onClick={onClose}
+                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white text-xs transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 5: Activated Tracking Dashboard */}
         {step === 'ACTIVATED' && (
           <div className="space-y-4 pt-4 animate-fade-in">
             {/* Success Alert Banner */}

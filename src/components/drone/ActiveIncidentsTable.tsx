@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   ShieldAlert,
   CheckCircle2,
@@ -9,6 +9,8 @@ import {
   Filter,
 } from 'lucide-react';
 import { TrackedPersonDetection } from '../../types/droneRescue';
+import { SortOption, SortDirection, sortData } from '../../types/sorting';
+import { SortingToolbar } from '../common/SortingToolbar';
 
 interface ActiveIncidentsTableProps {
   detections: TrackedPersonDetection[];
@@ -18,6 +20,44 @@ interface ActiveIncidentsTableProps {
   onSelectDetection: (detection: TrackedPersonDetection) => void;
 }
 
+const DRONE_INCIDENT_SORT_OPTIONS: SortOption<TrackedPersonDetection>[] = [
+  {
+    key: 'distress_score',
+    label: 'Distress Score',
+    directionLabels: { desc: 'Highest Distress', asc: 'Lowest Distress' },
+    getValue: (d: TrackedPersonDetection) => d.distress_score ?? 0,
+    defaultDirection: 'desc',
+  },
+  {
+    key: 'priority',
+    label: 'Priority Tier',
+    directionLabels: { desc: 'Critical → Low', asc: 'Low → Critical' },
+    getValue: (d: TrackedPersonDetection) => (d.priority === 'CRITICAL' ? 3 : d.priority === 'HIGH' ? 2 : d.priority === 'MEDIUM' ? 1 : 0),
+    defaultDirection: 'desc',
+  },
+  {
+    key: 'confidence',
+    label: 'AI Confidence',
+    directionLabels: { desc: 'Highest Conf', asc: 'Lowest Conf' },
+    getValue: (d: TrackedPersonDetection) => d.confidence ?? 0,
+    defaultDirection: 'desc',
+  },
+  {
+    key: 'timestamp_sec',
+    label: 'Scan Timestamp',
+    directionLabels: { desc: 'Latest First', asc: 'Earliest First' },
+    getValue: (d: TrackedPersonDetection) => d.timestamp_sec ?? 0,
+    defaultDirection: 'desc',
+  },
+  {
+    key: 'status',
+    label: 'Status',
+    directionLabels: { asc: 'A → Z', desc: 'Z → A' },
+    getValue: (d: TrackedPersonDetection) => d.status ?? '',
+    defaultDirection: 'asc',
+  },
+];
+
 export const ActiveIncidentsTable: React.FC<ActiveIncidentsTableProps> = ({
   detections,
   onVerify,
@@ -25,20 +65,47 @@ export const ActiveIncidentsTable: React.FC<ActiveIncidentsTableProps> = ({
   onOpenDispatchModal,
   onSelectDetection,
 }) => {
+  const [sortKey, setSortKey] = useState<string>('distress_score');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+
+  const sortedDetections = useMemo(() => {
+    const activeOpt = DRONE_INCIDENT_SORT_OPTIONS.find((o) => o.key === sortKey) || DRONE_INCIDENT_SORT_OPTIONS[0];
+    return sortData(detections, activeOpt, sortDirection);
+  }, [detections, sortKey, sortDirection]);
+
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs space-y-2">
       {/* Header */}
-      <div className="p-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+      <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <ShieldAlert className="w-5 h-5 text-red-600" />
           <h3 className="font-extrabold text-slate-900 text-base tracking-tight">
             ACTIVE RESCUE INCIDENTS & DISPATCH LEDGER
           </h3>
         </div>
-        <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-lg bg-slate-200 text-slate-700">
-          {detections.length} Total Incident Record{detections.length === 1 ? '' : 's'}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-lg bg-slate-200 text-slate-700">
+            {detections.length} Incident Record{detections.length === 1 ? '' : 's'}
+          </span>
+        </div>
       </div>
+
+      {/* Sorting Toolbar */}
+      {detections.length > 1 && (
+        <div className="px-4">
+          <SortingToolbar<TrackedPersonDetection>
+            sortOptions={DRONE_INCIDENT_SORT_OPTIONS}
+            activeSortKey={sortKey}
+            activeDirection={sortDirection}
+            onSortChange={(key, dir) => {
+              setSortKey(key);
+              setSortDirection(dir);
+            }}
+            defaultSortKey="distress_score"
+            defaultDirection="desc"
+          />
+        </div>
+      )}
 
       {/* Table Container */}
       <div className="overflow-x-auto">
@@ -63,7 +130,7 @@ export const ActiveIncidentsTable: React.FC<ActiveIncidentsTableProps> = ({
                 </td>
               </tr>
             ) : (
-              detections.map((det) => {
+              sortedDetections.map((det) => {
                 const isHighOrCrit = det.priority === 'CRITICAL' || det.priority === 'HIGH';
                 const isMed = det.priority === 'MEDIUM';
 

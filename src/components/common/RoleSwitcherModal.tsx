@@ -10,6 +10,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { useAuth, PRESET_PERSONAS } from '../../context/AuthContext';
+import { useFeedback } from '../../context/FeedbackContext';
 import { UserRole } from '../../types/auth';
 
 interface RoleSwitcherModalProps {
@@ -19,6 +20,7 @@ interface RoleSwitcherModalProps {
 
 export const RoleSwitcherModal: React.FC<RoleSwitcherModalProps> = ({ isOpen, onClose }) => {
   const { currentUser, switchPersona } = useAuth();
+  const { showSuccess } = useFeedback();
 
   if (!isOpen) return null;
 
@@ -110,6 +112,7 @@ export const RoleSwitcherModal: React.FC<RoleSwitcherModalProps> = ({ isOpen, on
                 key={r.role}
                 onClick={() => {
                   switchPersona(r.role);
+                  showSuccess(`Persona updated: ${r.title} (${r.persona.name})`);
                   onClose();
                 }}
                 className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
