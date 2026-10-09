@@ -162,3 +162,5 @@ npm run build
 
 ## 📄 License & Attribution
 Designed and built for automated multi-hazard disaster resilience, risk mitigation, and emergency response.
+
+# DisasterGuard-AI

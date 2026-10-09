@@ -41,7 +41,9 @@
   },
   "nav": {
     "dashboard": "Dashboard",
+    "missionControl": "Mission Control",
     "riskMap": "Risk Map",
+    "riskPrediction": "AI Risk Prediction",
     "droneRescue": "Drone Rescue",
     "aiLandScan": "AI Land Scan",
     "rainfall": "Rainfall Monitoring",
@@ -193,7 +195,7 @@
     "transmittingTitle": "Transmitting Satellite & Cellular Distress Beacon...",
     "transmittingSubtitle": "Routing to State Emergency Operations Center (SEOC)",
     "broadcastActive": "SOS SIGNAL BROADCAST ACTIVE",
-    "broadcastActiveDesc": "Distress signal received by Disaster Response Command. Response unit mobilized.",
+    "broadcastActiveDesc": "Incident recorded and response workflow initiated.",
     "incidentBeaconId": "Incident Beacon ID",
     "assignedTeam": "Assigned Response Team",
     "estimatedResponseTime": "Estimated Response Time",

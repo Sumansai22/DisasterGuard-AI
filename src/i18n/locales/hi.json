@@ -41,6 +41,7 @@
   },
   "nav": {
     "dashboard": "डैशबोर्ड",
+    "missionControl": "मिशन कंट्रोल",
     "riskMap": "जोखिम मानचित्र",
     "droneRescue": "ड्रोन बचाव",
     "aiLandScan": "AI लैंड स्कैन",

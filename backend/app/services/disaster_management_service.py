@@ -427,6 +427,135 @@ class DisasterManagementService:
                 return inc
         return None
 
+    def acknowledge_incident(self, incident_id: str, operator: str = "Disaster Officer", notes: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        for inc in CENTRAL_INCIDENTS:
+            if inc["id"] == incident_id:
+                inc["status"] = "ACKNOWLEDGED"
+                inc["acknowledged_at"] = datetime.utcnow().isoformat() + "Z"
+                if notes:
+                    inc["notes"] = f"{inc.get('notes', '')} | Ack notes: {notes}".strip(" |")
+                CENTRAL_AUDIT_LOGS.append({
+                    "id": f"AUD-{int(time.time()*1000)%100000}",
+                    "timestamp": datetime.utcnow().isoformat() + "Z",
+                    "operator": operator,
+                    "action": "INCIDENT_ACKNOWLEDGED",
+                    "incident_id": incident_id,
+                    "details": f"Operator acknowledged incident: {notes or 'No notes provided'}",
+                })
+                return inc
+        return None
+
+    def assign_incident(self, incident_id: str, team_name: str, team_type: str = "NDRF", operator: str = "Disaster Officer", notes: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        for inc in CENTRAL_INCIDENTS:
+            if inc["id"] == incident_id:
+                inc["status"] = "ASSIGNED"
+                inc["assigned_team"] = team_name
+                inc["assigned_team_type"] = team_type
+                if notes:
+                    inc["notes"] = f"{inc.get('notes', '')} | Assignment: {notes}".strip(" |")
+                CENTRAL_AUDIT_LOGS.append({
+                    "id": f"AUD-{int(time.time()*1000)%100000}",
+                    "timestamp": datetime.utcnow().isoformat() + "Z",
+                    "operator": operator,
+                    "action": "INCIDENT_ASSIGNED",
+                    "incident_id": incident_id,
+                    "details": f"Assigned to {team_name} ({team_type}). Notes: {notes or 'Standard assignment'}",
+                })
+                return inc
+        return None
+
+    def respond_incident(self, incident_id: str, operator: str = "Response Team Lead", notes: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        for inc in CENTRAL_INCIDENTS:
+            if inc["id"] == incident_id:
+                inc["status"] = "RESPONDING"
+                inc["on_scene_at"] = datetime.utcnow().isoformat() + "Z"
+                if notes:
+                    inc["notes"] = f"{inc.get('notes', '')} | Field: {notes}".strip(" |")
+                CENTRAL_AUDIT_LOGS.append({
+                    "id": f"AUD-{int(time.time()*1000)%100000}",
+                    "timestamp": datetime.utcnow().isoformat() + "Z",
+                    "operator": operator,
+                    "action": "INCIDENT_RESPONDING",
+                    "incident_id": incident_id,
+                    "details": f"Unit arrived on scene. Field report: {notes or 'Commencing operations'}",
+                })
+                return inc
+        return None
+
+    def close_incident(self, incident_id: str, operator: str = "Disaster Officer", notes: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        for inc in CENTRAL_INCIDENTS:
+            if inc["id"] == incident_id:
+                inc["status"] = "CLOSED"
+                if notes:
+                    inc["notes"] = f"{inc.get('notes', '')} | Closed: {notes}".strip(" |")
+                CENTRAL_AUDIT_LOGS.append({
+                    "id": f"AUD-{int(time.time()*1000)%100000}",
+                    "timestamp": datetime.utcnow().isoformat() + "Z",
+                    "operator": operator,
+                    "action": "INCIDENT_CLOSED",
+                    "incident_id": incident_id,
+                    "details": f"Incident formally closed and archived. {notes or ''}",
+                })
+                return inc
+        return None
+
+    def report_citizen_incident(
+        self,
+        incident_type: str,
+        latitude: float,
+        longitude: float,
+        location_name: str,
+        description: str,
+        priority: str = "HIGH",
+        photo_filename: Optional[str] = None
+    ) -> Dict[str, Any]:
+        report_id = f"DG-2026-{int(time.time()*100)%100000:05d}"
+        timestamp = datetime.utcnow().isoformat() + "Z"
+
+        new_incident = {
+            "id": report_id,
+            "type": incident_type.upper(),
+            "priority": priority.upper(),
+            "status": "CREATED",
+            "hazard_type": incident_type.upper(),
+            "latitude": latitude,
+            "longitude": longitude,
+            "location_name": location_name,
+            "source": "Citizen Incident Portal",
+            "confidence": 0.85,
+            "distress_score": 0.80 if priority.upper() == "CRITICAL" else 0.60,
+            "description": description,
+            "photo_filename": photo_filename,
+            "indicators": [
+                f"Citizen report: {incident_type}",
+                f"Priority: {priority}",
+                f"Coordinates: {latitude:.4f}°N, {longitude:.4f}°E",
+            ],
+            "created_at": timestamp,
+            "verified_at": None,
+            "acknowledged_at": None,
+            "dispatched_at": None,
+            "on_scene_at": None,
+            "resolved_at": None,
+            "assigned_team": None,
+            "assigned_team_type": None,
+            "notes": description,
+        }
+
+        CENTRAL_INCIDENTS.insert(0, new_incident)
+
+        CENTRAL_AUDIT_LOGS.append({
+            "id": f"AUD-{int(time.time()*1000)%100000}",
+            "timestamp": timestamp,
+            "operator": "Citizen Reporter",
+            "action": "CITIZEN_INCIDENT_REPORTED",
+            "incident_id": report_id,
+            "details": f"Citizen filed incident {report_id} ({incident_type}) at {location_name}: {description[:80]}",
+        })
+
+        return new_incident
+
+
     def create_sos_incident(
         self,
         latitude: float,

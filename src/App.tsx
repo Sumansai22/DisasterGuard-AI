@@ -9,6 +9,7 @@ import { AppLayout } from './components/layout/AppLayout';
 import { DashboardPage } from './pages/Dashboard';
 import { RiskMapPage } from './pages/RiskMap';
 import { PredictionPage } from './pages/Prediction';
+import { DroneRescuePage } from './pages/DroneRescue';
 import { AiLandScanPage } from './pages/AiLandScan';
 import { RainfallPage } from './pages/Rainfall';
 import { ImpactAnalysisPage } from './pages/ImpactAnalysis';
@@ -17,6 +18,7 @@ import { AlertsPage } from './pages/Alerts';
 import { HistoricalPage } from './pages/Historical';
 import { AnalyticsPage } from './pages/Analytics';
 import { AdminPage } from './pages/Admin';
+import { MissionControlPage } from './pages/MissionControl';
 
 export const App: React.FC = () => {
   return (
@@ -27,9 +29,10 @@ export const App: React.FC = () => {
             <Routes>
               <Route path="/" element={<AppLayout />}>
                 <Route index element={<DashboardPage />} />
+                <Route path="mission-control" element={<MissionControlPage />} />
                 <Route path="risk-map" element={<RiskMapPage />} />
                 <Route path="prediction" element={<PredictionPage />} />
-                <Route path="drone-rescue" element={<PredictionPage />} />
+                <Route path="drone-rescue" element={<DroneRescuePage />} />
                 <Route path="drone" element={<Navigate to="/drone-rescue" replace />} />
                 <Route path="ai-land-scan" element={<AiLandScanPage />} />
                 <Route path="land-scan" element={<Navigate to="/ai-land-scan" replace />} />

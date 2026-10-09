@@ -18,6 +18,9 @@ import { apiClient } from '../../services/api';
 interface EmergencySOSModalProps {
   isOpen: boolean;
   onClose: () => void;
+  locationName?: string;
+  hazardType?: string;
+  affectedRadiusKm?: number;
 }
 
 type SOSStep = 'CONFIG' | 'TRANSMITTING' | 'ACTIVATED';
@@ -286,7 +289,7 @@ export const EmergencySOSModal: React.FC<EmergencySOSModalProps> = ({
               <div>
                 <h4 className="text-xs font-bold text-white">{t('sos.broadcastActive', 'SOS SIGNAL BROADCAST ACTIVE')}</h4>
                 <p className="text-[11px] text-emerald-200 mt-0.5">
-                  {t('sos.broadcastActiveDesc', 'Distress signal received by Disaster Response Command. Response unit mobilized.')}
+                  {t('sos.broadcastActiveDesc', 'Incident recorded and response workflow initiated.')}
                 </p>
               </div>
             </div>

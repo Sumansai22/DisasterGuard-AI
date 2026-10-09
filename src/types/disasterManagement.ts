@@ -20,6 +20,7 @@ export type DataProvenanceStatus =
   | 'SATELLITE'
   | 'SENSOR'
   | 'DEMO'
+  | 'SIMULATION'
   | 'UNAVAILABLE'
   | 'ESTIMATED';
 
@@ -45,18 +46,23 @@ export type HazardEventStatus = 'WATCH' | 'ADVISORY' | 'ACTIVE' | 'RESOLVED' | '
 
 export type IncidentPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 export type IncidentStatus =
+  | 'CREATED'
   | 'DETECTED'
   | 'ASSESSED'
   | 'PENDING_VERIFICATION'
   | 'VERIFIED'
+  | 'ACKNOWLEDGED'
   | 'ALERTED'
+  | 'ASSIGNED'
   | 'DISPATCHED'
   | 'RESPONDING'
   | 'ON_SCENE'
   | 'RESCUED'
   | 'RESOLVED'
+  | 'CLOSED'
   | 'FALSE_POSITIVE'
-  | 'CANCELLED';
+  | 'CANCELLED'
+  | 'SOS_SENT';
 
 export type AlertType =
   | 'HAZARD_WARNING'

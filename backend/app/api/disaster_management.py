@@ -34,6 +34,33 @@ class DispatchPayload(BaseModel):
     instructions: str = "Immediate search & rescue deployment"
     operator: str = "Command Center Supervisor"
 
+class AcknowledgePayload(BaseModel):
+    incident_id: str
+    operator: str = "Command Center Operator"
+    notes: Optional[str] = None
+
+class AssignPayload(BaseModel):
+    incident_id: str
+    team_name: str
+    team_type: str = "NDRF"
+    operator: str = "Command Center Supervisor"
+    notes: Optional[str] = None
+
+class StatusUpdatePayload(BaseModel):
+    incident_id: str
+    status: str
+    operator: str = "Disaster Officer"
+    notes: Optional[str] = None
+
+class CitizenReportPayload(BaseModel):
+    incident_type: str
+    latitude: float
+    longitude: float
+    location_name: str
+    description: str
+    priority: str = "HIGH"
+    photo_filename: Optional[str] = None
+
 class SOSPayload(BaseModel):
     latitude: float
     longitude: float
@@ -131,6 +158,76 @@ def resolve_incident(incident_id: str, operator: str = Query("Command Center Ope
     if not inc:
         raise HTTPException(status_code=404, detail=f"Incident {incident_id} not found")
     return {"status": "success", "incident": inc, "message": "Incident resolved successfully"}
+
+@router.post("/incidents/acknowledge", tags=["Disaster Management V1"])
+def acknowledge_incident(payload: AcknowledgePayload):
+    inc = disaster_mgmt_service.acknowledge_incident(
+        incident_id=payload.incident_id,
+        operator=payload.operator,
+        notes=payload.notes,
+    )
+    if not inc:
+        raise HTTPException(status_code=404, detail=f"Incident {payload.incident_id} not found")
+    return {"status": "success", "incident": inc, "message": "Incident acknowledged by operator"}
+
+@router.post("/incidents/assign", tags=["Disaster Management V1"])
+def assign_incident(payload: AssignPayload):
+    inc = disaster_mgmt_service.assign_incident(
+        incident_id=payload.incident_id,
+        team_name=payload.team_name,
+        team_type=payload.team_type,
+        operator=payload.operator,
+        notes=payload.notes,
+    )
+    if not inc:
+        raise HTTPException(status_code=404, detail=f"Incident {payload.incident_id} not found")
+    return {"status": "success", "incident": inc, "message": f"Incident assigned to {payload.team_name}"}
+
+@router.post("/incidents/{incident_id}/close", tags=["Disaster Management V1"])
+def close_incident(incident_id: str, operator: str = Query("Command Center Operator"), notes: Optional[str] = Query(None)):
+    inc = disaster_mgmt_service.close_incident(incident_id, operator=operator, notes=notes)
+    if not inc:
+        raise HTTPException(status_code=404, detail=f"Incident {incident_id} not found")
+    return {"status": "success", "incident": inc, "message": "Incident archived and closed"}
+
+@router.post("/incidents/report", tags=["Disaster Management V1"])
+def report_citizen_incident(payload: CitizenReportPayload):
+    inc = disaster_mgmt_service.report_citizen_incident(
+        incident_type=payload.incident_type,
+        latitude=payload.latitude,
+        longitude=payload.longitude,
+        location_name=payload.location_name,
+        description=payload.description,
+        priority=payload.priority,
+        photo_filename=payload.photo_filename,
+    )
+    return {
+        "status": "success",
+        "incident_id": inc["id"],
+        "incident": inc,
+        "message": f"Incident {inc['id']} successfully recorded in DisasterGuard operations queue.",
+    }
+
+@router.get("/infrastructure", tags=["Disaster Management V1"])
+def get_infrastructure_status(
+    lat: float = Query(16.5448),
+    lng: float = Query(81.5212),
+    radius_km: float = Query(120.0),
+):
+    from app.api.disaster_map import ALL_CRITICAL_INFRASTRUCTURE, haversine_km
+    results = []
+    for item in ALL_CRITICAL_INFRASTRUCTURE:
+        d = haversine_km(lat, lng, item["latitude"], item["longitude"])
+        if d <= radius_km:
+            results.append({**item, "distance_km": d})
+    results.sort(key=lambda x: x.get("distance_km", 999))
+    if not results and ALL_CRITICAL_INFRASTRUCTURE:
+        results = [{**item, "distance_km": haversine_km(lat, lng, item["latitude"], item["longitude"])} for item in ALL_CRITICAL_INFRASTRUCTURE[:5]]
+    return {
+        "status": "success",
+        "count": len(results),
+        "infrastructure": results,
+    }
 
 @router.post("/incidents/{incident_id}/false-positive", tags=["Disaster Management V1"])
 def mark_false_positive(incident_id: str, operator: str = Query("Command Center Operator")):

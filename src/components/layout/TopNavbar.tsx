@@ -534,22 +534,23 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             )}
           </div>
 
-          {/* NDMA Operations Badge */}
-          <div
-            className="hidden sm:flex items-center gap-1.5 pl-1.5 sm:pl-2 border-l border-slate-200 shrink-0"
-            title="NDMA Operations — Disaster Management Control Center 01"
+          {/* NDMA Operations Badge -> Link to Mission Control */}
+          <Link
+            to="/mission-control"
+            className="hidden sm:flex items-center gap-1.5 pl-1.5 sm:pl-2 border-l border-slate-200 shrink-0 hover:opacity-85 transition-opacity"
+            title="Open NDMA Operations — Disaster Management Mission Control Center"
           >
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-orange-100 text-orange-700 flex items-center justify-center font-bold text-xs border border-orange-200 shrink-0">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-orange-100 text-orange-700 flex items-center justify-center font-bold text-xs border border-orange-200 shrink-0 shadow-2xs">
               <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
             <div className="hidden 2xl:block text-left min-w-0">
               <p className="text-xs font-bold text-slate-800 leading-none truncate">{t('app.ndmaOperations', 'NDMA Operations')}</p>
-              <p className="text-[10px] text-slate-400 mt-0.5 truncate">{t('app.controlCenter', 'Control Center 01')}</p>
+              <p className="text-[10px] text-slate-400 mt-0.5 truncate">{t('app.controlCenter', 'Mission Control')}</p>
             </div>
             <div className="hidden lg:block 2xl:hidden text-left min-w-0">
-              <p className="text-xs font-bold text-slate-800 leading-none">NDMA</p>
+              <p className="text-xs font-bold text-slate-800 leading-none">Mission Control</p>
             </div>
-          </div>
+          </Link>
         </div>
       </div>
 

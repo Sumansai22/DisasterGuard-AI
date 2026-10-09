@@ -41,6 +41,7 @@
   },
   "nav": {
     "dashboard": "ഡാഷ്‌ബോർഡ്",
+    "missionControl": "മിഷൻ കൺട്രോൾ",
     "riskMap": "ദുരന്ത സാധ്യത ഭൂപടം",
     "droneRescue": "ഡ്രോൺ രക്ഷാപ്രവർത്തനം",
     "aiLandScan": "AI ലാൻഡ് സ്കാൻ",

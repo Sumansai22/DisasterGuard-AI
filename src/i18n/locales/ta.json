@@ -41,6 +41,7 @@
   },
   "nav": {
     "dashboard": "முகப்பு பலகை",
+    "missionControl": "மிஷன் கட்டுப்பாடு",
     "riskMap": "இடர் வரைபடம்",
     "droneRescue": "ட்ரோன் மீட்பு",
     "aiLandScan": "AI நில ஸ்கேன்",

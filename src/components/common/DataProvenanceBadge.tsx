@@ -3,17 +3,21 @@ import { DataProvenanceStatus } from '../../types/disasterManagement';
 
 interface DataProvenanceBadgeProps {
   status: DataProvenanceStatus;
+  label?: string;
   source?: string;
   updatedAt?: string;
   confidence?: number;
+  size?: 'sm' | 'md' | 'lg' | string;
   className?: string;
 }
 
 export const DataProvenanceBadge: React.FC<DataProvenanceBadgeProps> = ({
   status,
+  label,
   source,
   updatedAt,
   confidence,
+  size = 'md',
   className = '',
 }) => {
   const getBadgeStyle = () => {
@@ -32,6 +36,10 @@ export const DataProvenanceBadge: React.FC<DataProvenanceBadgeProps> = ({
         return 'bg-purple-950/80 text-purple-400 border-purple-700/80';
       case 'DEMO':
         return 'bg-amber-950/50 text-amber-300 border-amber-600/80';
+      case 'SIMULATION':
+        return 'bg-rose-950/50 text-rose-300 border-rose-600/80';
+      case 'HISTORICAL':
+        return 'bg-slate-800 text-slate-300 border-slate-700';
       case 'UNAVAILABLE':
       default:
         return 'bg-slate-900 text-slate-400 border-slate-700';
@@ -39,6 +47,7 @@ export const DataProvenanceBadge: React.FC<DataProvenanceBadgeProps> = ({
   };
 
   const getLabel = () => {
+    if (label) return label;
     switch (status) {
       case 'LIVE':
         return '● LIVE';
@@ -54,6 +63,10 @@ export const DataProvenanceBadge: React.FC<DataProvenanceBadgeProps> = ({
         return 'ESTIMATED';
       case 'DEMO':
         return 'DEMO DATA';
+      case 'SIMULATION':
+        return 'SIMULATION';
+      case 'HISTORICAL':
+        return 'HISTORICAL';
       case 'UNAVAILABLE':
         return 'UNAVAILABLE';
       default:
@@ -61,10 +74,12 @@ export const DataProvenanceBadge: React.FC<DataProvenanceBadgeProps> = ({
     }
   };
 
+  const sizeClasses = size === 'sm' ? 'px-1.5 py-0.2 text-[9px]' : 'px-2 py-0.5 text-[10px]';
+
   return (
     <div className={`inline-flex items-center gap-1.5 font-mono text-[10px] ${className}`}>
       <span
-        className={`px-2 py-0.5 rounded-full border font-bold tracking-wider uppercase transition-colors ${getBadgeStyle()}`}
+        className={`${sizeClasses} rounded-full border font-bold tracking-wider uppercase transition-colors ${getBadgeStyle()}`}
         title={
           source || updatedAt
             ? `Source: ${source || 'System'}${updatedAt ? ` | Updated: ${updatedAt}` : ''}${
@@ -79,3 +94,5 @@ export const DataProvenanceBadge: React.FC<DataProvenanceBadgeProps> = ({
     </div>
   );
 };
+
+export default DataProvenanceBadge;

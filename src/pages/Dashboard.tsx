@@ -15,6 +15,9 @@ import { ScenarioSimulatorModal } from '../components/common/ScenarioSimulatorMo
 import { multiHazardService } from '../services/multiHazardService';
 import { disasterManagementService, ScenarioSimulationResult } from '../services/disasterManagementService';
 import { MultiHazardAssessment, HazardType } from '../types/multiHazard';
+import { EmergencyCopilot } from '../components/copilot/EmergencyCopilot';
+import { WhyThisAlertModal } from '../components/explainability/WhyThisAlertModal';
+import { RiskEvolutionTimeline } from '../components/timeline/RiskEvolutionTimeline';
 import {
   ShieldAlert,
   BellRing,
@@ -66,6 +69,7 @@ export const DashboardPage: React.FC = () => {
   const [latestScanDetected, setLatestScanDetected] = useState<boolean>(false);
   const [multiHazardData, setMultiHazardData] = useState<MultiHazardAssessment | null>(null);
   const [isLoadingHazard, setIsLoadingHazard] = useState<boolean>(false);
+  const [showWhyThisAlert, setShowWhyThisAlert] = useState<boolean>(false);
 
   useEffect(() => {
     landScanService.getScanHistory(5).then((res) => {
@@ -134,6 +138,23 @@ export const DashboardPage: React.FC = () => {
 
   const [isSimulatorOpen, setIsSimulatorOpen] = useState(false);
   const [activeScenarioResult, setActiveScenarioResult] = useState<ScenarioSimulationResult | null>(null);
+
+  // Dynamic hazard exposure calculations
+  const currentExposure =
+    multiHazardData?.hazardExposures?.[selectedHazardType] ||
+    multiHazardData?.hazardExposures?.['ALL'] ||
+    (multiHazardData?.hazardExposures ? Object.values(multiHazardData.hazardExposures)[0] : null);
+
+  const topActiveHazards = multiHazardData?.hazards?.filter((h) => h.score >= 40) || [];
+  const displayHazards =
+    topActiveHazards.length > 0
+      ? topActiveHazards.slice(0, 3)
+      : (multiHazardData?.hazards?.slice(0, 3) || []);
+
+  const totalIncidents = alerts.length;
+  const highRiskZonesCount = multiHazardData?.hazards
+    ? multiHazardData.hazards.filter((h) => h.level === 'HIGH' || h.level === 'CRITICAL').length
+    : (isMonitored ? 2 : 0);
 
   return (
     <div className="space-y-6">
@@ -213,7 +234,15 @@ export const DashboardPage: React.FC = () => {
               source={isMonitored ? 'Telemetry Station' : 'Open-Meteo & IMD'}
             />
           </div>
-          <div className="flex items-center gap-2 sm:gap-4 text-xs font-mono shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 text-xs font-mono shrink-0 flex-wrap">
+            <button
+              onClick={() => setShowWhyThisAlert(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-cyan-950/70 hover:bg-cyan-900/80 border border-cyan-800/80 text-cyan-300 text-[11px] font-semibold transition"
+              title="Inspect AI alert reasoning, feature attribution and model provenance"
+            >
+              <BrainCircuit className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Why This Alert?</span>
+            </button>
             <span className="text-slate-400 text-[11px] sm:text-xs">
               {t('app.environmentalData')}:{' '}
               <strong className="text-emerald-400 font-bold">{t('app.available')}</strong>
@@ -236,15 +265,27 @@ export const DashboardPage: React.FC = () => {
               <span>{t('dashboard.activeHazards')}</span>
             </span>
             <div className="flex flex-wrap gap-1.5">
-              <span className="px-2 py-1 rounded-md text-xs font-bold bg-red-950/80 text-red-400 border border-red-800 flex items-center gap-1">
-                🔴 {t('hazards.FLASH_FLOOD')}
-              </span>
-              <span className="px-2 py-1 rounded-md text-xs font-bold bg-amber-950/80 text-amber-400 border border-amber-800 flex items-center gap-1">
-                🟠 {t('hazards.LANDSLIDE')}
-              </span>
-              <span className="px-2 py-1 rounded-md text-xs font-bold bg-yellow-950/80 text-yellow-300 border border-yellow-800 flex items-center gap-1">
-                🟡 {t('hazards.EXTREME_RAINFALL')}
-              </span>
+              {displayHazards.length > 0 ? (
+                displayHazards.map((hz) => (
+                  <span
+                    key={hz.type}
+                    className={`px-2 py-1 rounded-md text-xs font-bold border flex items-center gap-1 ${
+                      hz.level === 'CRITICAL'
+                        ? 'bg-red-950/80 text-red-400 border-red-800'
+                        : hz.level === 'HIGH'
+                        ? 'bg-orange-950/80 text-orange-400 border-orange-800'
+                        : 'bg-amber-950/80 text-amber-300 border-amber-800'
+                    }`}
+                  >
+                    {hz.level === 'CRITICAL' ? '🔴' : hz.level === 'HIGH' ? '🟠' : '🟡'}{' '}
+                    {t(`hazards.${hz.type}`, hz.name)}
+                  </span>
+                ))
+              ) : (
+                <span className="px-2 py-1 rounded-md text-xs font-bold bg-emerald-950/80 text-emerald-400 border border-emerald-800 flex items-center gap-1">
+                  🟢 Nominal Environmental Baseline
+                </span>
+              )}
             </div>
           </div>
 
@@ -257,15 +298,23 @@ export const DashboardPage: React.FC = () => {
             <div className="grid grid-cols-3 gap-2 text-xs font-mono">
               <div className="min-w-0">
                 <span className="text-[10px] text-slate-500 block truncate">{t('dashboard.incidents')}</span>
-                <span className="text-white font-bold text-xs truncate block">🚨 6 Active</span>
+                <span className="text-white font-bold text-xs truncate block">
+                  🚨 {totalIncidents > 0 ? `${totalIncidents} Active` : '0 Active'}
+                </span>
               </div>
               <div className="min-w-0">
                 <span className="text-[10px] text-slate-500 block truncate">{t('dashboard.rescueTargets')}</span>
-                <span className="text-orange-400 font-bold text-xs truncate block">🚁 3 Priority</span>
+                <span className="text-orange-400 font-bold text-xs truncate block">
+                  🚁 {currentExposure?.vulnerable_demographics
+                    ? `${formatNumber(currentExposure.vulnerable_demographics.elderly + currentExposure.vulnerable_demographics.children)} Exposed`
+                    : `${activeAlertsCount} Priority`}
+                </span>
               </div>
               <div className="min-w-0">
                 <span className="text-[10px] text-slate-500 block truncate">{t('dashboard.safeShelters')}</span>
-                <span className="text-emerald-400 font-bold text-xs truncate block">🛡 4 Ready</span>
+                <span className="text-emerald-400 font-bold text-xs truncate block">
+                  🛡 {currentExposure?.verified_shelters_available ?? 4} Ready
+                </span>
               </div>
             </div>
           </div>
@@ -282,19 +331,35 @@ export const DashboardPage: React.FC = () => {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-xs font-mono text-center">
               <div className="bg-slate-950 p-2 rounded-lg border border-slate-800/80 min-w-0">
                 <span className="text-[10px] text-slate-500 block truncate">{t('dashboard.population')}</span>
-                <span className="text-white font-bold text-xs truncate block">{formatNumber(18420)}</span>
+                <span className="text-white font-bold text-xs truncate block">
+                  {currentExposure?.population_exposed != null
+                    ? formatNumber(currentExposure.population_exposed)
+                    : isMonitored ? formatNumber(4800) : 'UNAVAILABLE'}
+                </span>
               </div>
               <div className="bg-slate-950 p-2 rounded-lg border border-slate-800/80 min-w-0">
                 <span className="text-[10px] text-slate-500 block truncate">{t('dashboard.buildings')}</span>
-                <span className="text-white font-bold text-xs truncate block">{formatNumber(3241)}</span>
+                <span className="text-white font-bold text-xs truncate block">
+                  {currentExposure?.critical_facilities_exposed != null
+                    ? formatNumber(currentExposure.critical_facilities_exposed * 18 + (currentExposure.schools_exposed || 0) * 8)
+                    : isMonitored ? formatNumber(166) : 'UNAVAILABLE'}
+                </span>
               </div>
               <div className="bg-slate-950 p-2 rounded-lg border border-slate-800/80 min-w-0">
                 <span className="text-[10px] text-slate-500 block truncate">{t('dashboard.roads')}</span>
-                <span className="text-white font-bold text-xs truncate block">31.5 km</span>
+                <span className="text-white font-bold text-xs truncate block">
+                  {currentExposure?.roads_exposed_km != null
+                    ? `${currentExposure.roads_exposed_km} km`
+                    : isMonitored ? '18.5 km' : 'UNAVAILABLE'}
+                </span>
               </div>
               <div className="bg-slate-950 p-2 rounded-lg border border-slate-800/80 min-w-0">
                 <span className="text-[10px] text-slate-500 block truncate">{t('dashboard.hospitals')}</span>
-                <span className="text-emerald-400 font-bold text-xs truncate block">4</span>
+                <span className="text-emerald-400 font-bold text-xs truncate block">
+                  {currentExposure?.hospitals_exposed != null
+                    ? currentExposure.hospitals_exposed
+                    : isMonitored ? 2 : 'UNAVAILABLE'}
+                </span>
               </div>
             </div>
           </div>
@@ -308,6 +373,20 @@ export const DashboardPage: React.FC = () => {
           onClear={clearSearchedLocation}
         />
       )}
+
+      {/* AI Emergency Copilot Synthesis */}
+      <EmergencyCopilot
+        assessment={multiHazardData}
+        rainfallMm={selectedStation?.parameters.rainfall_mm ?? null}
+        activeIncidentsCount={totalIncidents}
+        blockedRoadsCount={currentExposure?.roads_exposed_km ? Math.max(1, Math.round(currentExposure.roads_exposed_km / 8)) : 1}
+        sheltersCount={currentExposure?.verified_shelters_available ?? 4}
+        onOpenEvacuation={() => navigate('/evacuation')}
+        onOpenShelters={() => navigate('/evacuation')}
+        onOpenExplainability={() => setShowWhyThisAlert(true)}
+        onOpenScenario={() => setIsSimulatorOpen(true)}
+        onOpenMissionControl={() => navigate('/mission-control')}
+      />
 
       {/* Top KPI Cards - Responsive Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 w-full min-w-0">
@@ -344,8 +423,8 @@ export const DashboardPage: React.FC = () => {
 
         <StatCard
           title={t('dashboard.highRiskZones')}
-          value="12"
-          subtitle="Saturated slope sectors"
+          value={highRiskZonesCount > 0 ? `${highRiskZonesCount}` : (isMonitored ? '0' : 'N/A')}
+          subtitle="Monitored hazard sectors"
           icon={AlertTriangle}
           iconColor="text-amber-600"
           iconBg="bg-amber-50"
@@ -403,16 +482,6 @@ export const DashboardPage: React.FC = () => {
           }}
         />
       </div>
-
-      {/* Multi-Hazard Decision Support Matrix */}
-      <MultiHazardRiskMatrix
-        assessment={multiHazardData}
-        isLoading={isLoadingHazard}
-        onSelectHazard={(hz) => setSelectedHazardType(hz)}
-      />
-
-      {/* Multi-Hazard Decision Pipeline Architecture Flow */}
-      <CascadingHazardFlow assessment={multiHazardData} />
 
       {/* Main Risk Overview (GIS Map + Telemetry Panel) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 w-full min-w-0">
@@ -606,6 +675,51 @@ export const DashboardPage: React.FC = () => {
           ) : null}
         </div>
       </div>
+
+      {/* Multi-Hazard Decision Support Matrix */}
+      <MultiHazardRiskMatrix
+        assessment={multiHazardData}
+        isLoading={isLoadingHazard}
+        onSelectHazard={(hz) => setSelectedHazardType(hz)}
+      />
+
+      {/* Multi-Hazard Decision Pipeline Architecture Flow */}
+      <CascadingHazardFlow assessment={multiHazardData} />
+
+      {/* 24-Hour Risk Evolution Timeline */}
+      <RiskEvolutionTimeline
+        currentRiskScore={selectedStation?.riskScore ?? 65}
+        currentRainfallMm={selectedStation?.parameters.rainfall_mm ?? 55}
+        locationName={activeLocation.name}
+      />
+
+      {/* AI Trust Disclaimer & Data Provenance Footer */}
+      <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-4 text-xs text-slate-400 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+        <div className="flex items-center gap-2">
+          <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>
+            DisasterGuard AI synthesized from IMD Doppler Radar, GSI geotechnical mapping, and local telemetry. Automated directives require incident commander verification before mandatory evacuation dispatch.
+          </span>
+        </div>
+        <DataProvenanceBadge status="MODEL_ESTIMATE" label="AUDITED AI" size="sm" />
+      </div>
+
+      {/* Why This Alert Explainability Modal */}
+      <WhyThisAlertModal
+        isOpen={showWhyThisAlert}
+        onClose={() => setShowWhyThisAlert(false)}
+        riskLevel={selectedStation?.riskLevel || 'HIGH'}
+        riskScore={selectedStation?.riskScore || 78}
+        primaryContributor={factors?.[0]?.name ? `${factors[0].name} (${factors[0].impact} impact)` : 'Sustained Heavy Precipitation'}
+        modelName="Random Forest Classifier v2.4 (landslide_model.pkl)"
+        factors={factors?.map((f) => ({
+          name: f.name,
+          score: f.score,
+          valueDisplay: String(f.value),
+          impact: f.impact,
+          explanation: f.explanation,
+        }))}
+      />
     </div>
   );
 };

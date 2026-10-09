@@ -17,6 +17,7 @@ import {
   Layers,
   Crosshair,
   X,
+  Radio,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useTranslation } from '../../i18n';
@@ -48,8 +49,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const navItems = [
     { name: t('nav.dashboard', 'Dashboard'), path: '/', icon: LayoutDashboard },
+    { name: t('nav.missionControl', 'Mission Control'), path: '/mission-control', icon: Radio, badge: 'OPS' },
     { name: t('nav.riskMap', 'Risk Map'), path: '/risk-map', icon: MapPin },
-    { name: t('nav.droneRescue', 'Drone Rescue'), path: '/prediction', icon: Crosshair, badge: 'AI UAV' },
+    { name: t('nav.riskPrediction', 'AI Risk Prediction'), path: '/prediction', icon: BrainCircuit, badge: 'RF 9-Param' },
+    { name: t('nav.droneRescue', 'Drone Rescue'), path: '/drone-rescue', icon: Crosshair, badge: 'AI UAV' },
     { name: t('nav.aiLandScan', 'AI Land Scan'), path: '/ai-land-scan', icon: ScanLine, badge: 'U-Net 2D' },
     { name: t('nav.rainfall', 'Rainfall Monitoring'), path: '/rainfall', icon: CloudRain },
     { name: t('nav.impactAnalysis', 'Impact Analysis'), path: '/impact-analysis', icon: Building2 },

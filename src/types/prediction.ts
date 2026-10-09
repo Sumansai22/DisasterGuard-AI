@@ -55,3 +55,5 @@ export interface PresetScenario {
   category: 'Monsoon Extreme' | 'Moderate Warning' | 'Safe Lowland' | 'Seismic Trigger';
   input: PredictionFormValues;
 }
+
+export type PredictionResultData = PredictionResponse;

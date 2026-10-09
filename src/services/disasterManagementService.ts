@@ -101,11 +101,83 @@ export const disasterManagementService = {
     return res.data.incident;
   },
 
+  async acknowledgeIncident(params: { incidentId: string; operator?: string; notes?: string }): Promise<IncidentModel> {
+    const res = await apiClient.post<{ incident: IncidentModel }>(`${API_V1}/incidents/acknowledge`, {
+      incident_id: params.incidentId,
+      operator: params.operator || 'Command Center Operator',
+      notes: params.notes,
+    });
+    return res.data.incident;
+  },
+
+  async assignIncident(params: {
+    incidentId: string;
+    teamName: string;
+    teamType?: string;
+    operator?: string;
+    notes?: string;
+  }): Promise<IncidentModel> {
+    const res = await apiClient.post<{ incident: IncidentModel }>(`${API_V1}/incidents/assign`, {
+      incident_id: params.incidentId,
+      team_name: params.teamName,
+      team_type: params.teamType || 'NDRF',
+      operator: params.operator || 'Command Center Supervisor',
+      notes: params.notes,
+    });
+    return res.data.incident;
+  },
+
+  async closeIncident(incidentId: string, operator: string = 'Command Center Operator', notes?: string): Promise<IncidentModel> {
+    const res = await apiClient.post<{ incident: IncidentModel }>(
+      `${API_V1}/incidents/${incidentId}/close?operator=${encodeURIComponent(operator)}${notes ? `&notes=${encodeURIComponent(notes)}` : ''}`
+    );
+    return res.data.incident;
+  },
+
+  async reportCitizenIncident(params: {
+    incidentType: string;
+    latitude: number;
+    longitude: number;
+    locationName: string;
+    description: string;
+    priority?: string;
+    photoFilename?: string;
+  }): Promise<{ incidentId: string; incident: IncidentModel; message: string }> {
+    const res = await apiClient.post<{ incident_id: string; incident: IncidentModel; message: string }>(
+      `${API_V1}/incidents/report`,
+      {
+        incident_type: params.incidentType,
+        latitude: params.latitude,
+        longitude: params.longitude,
+        location_name: params.locationName,
+        description: params.description,
+        priority: params.priority || 'HIGH',
+        photo_filename: params.photoFilename,
+      }
+    );
+    return {
+      incidentId: res.data.incident_id,
+      incident: res.data.incident,
+      message: res.data.message,
+    };
+  },
+
   async markFalsePositive(incidentId: string, operator: string = 'Command Center Operator'): Promise<IncidentModel> {
     const res = await apiClient.post<{ incident: IncidentModel }>(
       `${API_V1}/incidents/${incidentId}/false-positive?operator=${encodeURIComponent(operator)}`
     );
     return res.data.incident;
+  },
+
+  async getInfrastructure(lat: number = 16.5448, lng: number = 81.5212, radiusKm: number = 120): Promise<any[]> {
+    try {
+      const res = await apiClient.get<{ infrastructure: any[] }>(`${API_V1}/infrastructure`, {
+        params: { lat, lng, radius_km: radiusKm },
+      });
+      return res.data.infrastructure || [];
+    } catch {
+      return [];
+    }
   },
 
   // -------------------------------------------------------------

@@ -41,6 +41,7 @@
   },
   "nav": {
     "dashboard": "డాష్‌బోర్డ్",
+    "missionControl": "మిషన్ కంట్రోల్",
     "riskMap": "ప్రమాద మ్యాప్",
     "droneRescue": "డ్రోన్ రక్షణ",
     "aiLandScan": "AI ల్యాండ్ స్కాన్",

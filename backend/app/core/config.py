@@ -41,6 +41,8 @@ class Settings:
             "http://127.0.0.1:8000",
             "http://localhost:8008",
             "http://127.0.0.1:8008",
+            "https://disaster-guard-ruddy.vercel.app",
+            "https://disaster-guard.vercel.app",
         ]
         
         frontend_url = os.getenv("FRONTEND_URL", "").strip()
