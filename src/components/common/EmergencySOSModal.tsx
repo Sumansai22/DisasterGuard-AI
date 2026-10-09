@@ -29,7 +29,7 @@ export const EmergencySOSModal: React.FC<EmergencySOSModalProps> = ({
   isOpen,
   onClose,
 }) => {
-  const { activeLocation } = useApp();
+  const { activeLocation, isDemoMode } = useApp();
   const { t } = useTranslation();
 
   const [step, setStep] = useState<SOSStep>('CONFIG');
@@ -93,6 +93,17 @@ export const EmergencySOSModal: React.FC<EmergencySOSModalProps> = ({
   const handleTransmitSOS = async () => {
     setIsSubmitting(true);
     setStep('TRANSMITTING');
+
+    if (isDemoMode) {
+      setTimeout(() => {
+        setIncidentId(`DEMO-SOS-${Math.floor(1000 + Math.random() * 9000)}`);
+        setEtaMinutes(12);
+        setResponderName('NDRF Quick Response Team (Demo Sandbox)');
+        setStep('ACTIVATED');
+        setIsSubmitting(false);
+      }, 800);
+      return;
+    }
 
     try {
       const payload = {
@@ -165,6 +176,17 @@ export const EmergencySOSModal: React.FC<EmergencySOSModalProps> = ({
         </div>
 
         <div className="overflow-y-auto flex-1 pr-0.5">
+
+        {isDemoMode && (
+          <div className="mt-3 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center gap-2 text-amber-300 text-xs">
+            <span className="font-extrabold text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 shrink-0">
+              DEMO SANDBOX
+            </span>
+            <span className="text-[11px] leading-tight">
+              Safe demo mode active. SOS triggers simulated local dispatch without notifying external civil defense authorities.
+            </span>
+          </div>
+        )}
 
         {/* Step 1: Configuration Form */}
         {step === 'CONFIG' && (

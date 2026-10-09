@@ -18,6 +18,7 @@ import { MultiHazardAssessment, HazardType } from '../types/multiHazard';
 import { EmergencyCopilot } from '../components/copilot/EmergencyCopilot';
 import { WhyThisAlertModal } from '../components/explainability/WhyThisAlertModal';
 import { RiskEvolutionTimeline } from '../components/timeline/RiskEvolutionTimeline';
+import { DemoTourButton } from '../components/demo/DemoTourButton';
 import {
   ShieldAlert,
   BellRing,
@@ -178,7 +179,8 @@ export const DashboardPage: React.FC = () => {
         </div>
 
         {/* Action Buttons Responsive Grid */}
-        <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-2.5 w-full lg:w-auto shrink-0">
+        <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-2.5 w-full lg:w-auto shrink-0 flex-wrap">
+          <DemoTourButton variant="hero" />
           <button
             onClick={() => setIsSimulatorOpen(true)}
             className="px-3 py-2 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-[0.98] cursor-pointer"

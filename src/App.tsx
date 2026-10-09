@@ -19,6 +19,7 @@ import { HistoricalPage } from './pages/Historical';
 import { AnalyticsPage } from './pages/Analytics';
 import { AdminPage } from './pages/Admin';
 import { MissionControlPage } from './pages/MissionControl';
+import { DemoTourProvider } from './context/DemoTourContext';
 
 export const App: React.FC = () => {
   return (
@@ -26,8 +27,9 @@ export const App: React.FC = () => {
       <AppProvider>
         <PredictionProvider>
           <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<AppLayout />}>
+            <DemoTourProvider>
+              <Routes>
+                <Route path="/" element={<AppLayout />}>
                 <Route index element={<DashboardPage />} />
                 <Route path="mission-control" element={<MissionControlPage />} />
                 <Route path="risk-map" element={<RiskMapPage />} />
@@ -46,7 +48,8 @@ export const App: React.FC = () => {
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Route>
             </Routes>
-          </BrowserRouter>
+          </DemoTourProvider>
+        </BrowserRouter>
         </PredictionProvider>
       </AppProvider>
     </LanguageProvider>

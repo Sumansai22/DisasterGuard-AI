@@ -5,6 +5,7 @@ import { TopNavbar } from './TopNavbar';
 import { Footer } from './Footer';
 import { DisclaimerBanner } from '../common/DisclaimerBanner';
 import { EmergencySOSModal } from '../common/EmergencySOSModal';
+import { InteractiveDemoTourModal } from '../demo/InteractiveDemoTourModal';
 import { useTranslation } from '../../i18n';
 import { AlertOctagon } from 'lucide-react';
 
@@ -77,6 +78,9 @@ export const AppLayout: React.FC = () => {
         isOpen={showGlobalSos}
         onClose={() => setShowGlobalSos(false)}
       />
+
+      {/* Global Interactive Hackathon Demo Tour Walkthrough Modal */}
+      <InteractiveDemoTourModal />
     </div>
   );
 };

@@ -20,6 +20,7 @@ import { DemoModeToggle } from '../common/DemoModeToggle';
 import { SystemStatusIndicator } from '../common/SystemStatus';
 import { EmergencySOSModal } from '../common/EmergencySOSModal';
 import { LanguageSelector } from '../common/LanguageSelector';
+import { DemoTourButton } from '../demo/DemoTourButton';
 import { useTranslation } from '../../i18n';
 import { Link } from 'react-router-dom';
 import { geocodingService } from '../../services/geocodingService';
@@ -457,6 +458,9 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             <span className="hidden xl:inline whitespace-nowrap">{t('sos.trigger', 'EMERGENCY SOS')}</span>
             <span className="xl:hidden whitespace-nowrap">SOS</span>
           </button>
+
+          {/* Interactive Hackathon Demo Mode Walkthrough Trigger */}
+          <DemoTourButton variant="navbar" />
 
           {/* Demo Mode / Live API Toggle */}
           <DemoModeToggle />
