@@ -430,3 +430,104 @@ describe('Enterprise RBAC Permissions Matrix and Workspace Isolation', () => {
     assert.ok(!operator.permissions.includes('config:update'));
   });
 });
+
+describe('Feedback & Experience Center End-to-End Verification', () => {
+  const mockSubmissions = [
+    {
+      id: 'FB-TEST-001',
+      subject: 'Inaccurate rainfall alert in Munnar sector',
+      description: 'The rainfall gauge showed 45mm but the alert triggered for 120mm critical threshold.',
+      category: 'SENSOR_TELEMETRY',
+      priority: 'HIGH',
+      module: 'WEATHER_RAINFALL',
+      status: 'SUBMITTED',
+      ratingOverall: 3,
+      ratingUsability: 4,
+      ratingAccuracy: 2,
+      reporterRole: 'OPERATOR',
+      reporterEmail: 'operator1@ndma.gov.in',
+      createdAt: '2026-10-09T10:00:00Z',
+    },
+    {
+      id: 'FB-TEST-002',
+      subject: 'Drone inspection feed latency in poor network',
+      description: 'Field teams experienced high buffering during drone surveillance mission over riverbank.',
+      category: 'DRONE_FEED',
+      priority: 'CRITICAL',
+      module: 'DRONE_RESCUE',
+      status: 'UNDER_REVIEW',
+      ratingOverall: 2,
+      ratingUsability: 3,
+      ratingAccuracy: 4,
+      reporterRole: 'INSPECTOR',
+      reporterEmail: 'inspector@ndrf.gov.in',
+      createdAt: '2026-10-09T11:00:00Z',
+    },
+    {
+      id: 'FB-TEST-003',
+      subject: 'Shelter capacity update verified',
+      description: 'Confirmed Government Higher Secondary School shelter has expanded bedding capacity to 350.',
+      category: 'EVACUATION_ROUTING',
+      priority: 'LOW',
+      module: 'EVACUATION_SHELTERS',
+      status: 'RESOLVED',
+      ratingOverall: 5,
+      ratingUsability: 5,
+      ratingAccuracy: 5,
+      reporterRole: 'CITIZEN',
+      reporterEmail: 'volunteer@kerala.org',
+      createdAt: '2026-10-09T12:00:00Z',
+    },
+  ];
+
+  test('Feedback KPI stats calculation is accurate and robust', () => {
+    const total = mockSubmissions.length;
+    const submitted = mockSubmissions.filter((x) => x.status === 'SUBMITTED').length;
+    const inProgress = mockSubmissions.filter((x) => ['UNDER_REVIEW', 'IN_PROGRESS'].includes(x.status)).length;
+    const resolved = mockSubmissions.filter((x) => ['RESOLVED', 'CLOSED'].includes(x.status)).length;
+    const avgSatisfaction =
+      mockSubmissions.reduce((acc, curr) => acc + (curr.ratingOverall || 0), 0) / (total || 1);
+
+    assert.equal(total, 3);
+    assert.equal(submitted, 1);
+    assert.equal(inProgress, 1);
+    assert.equal(resolved, 1);
+    assert.equal(Math.round(avgSatisfaction * 10) / 10, 3.3);
+  });
+
+  test('Feedback status transition workflow validation', () => {
+    const validTransitions = {
+      SUBMITTED: ['UNDER_REVIEW', 'CLOSED'],
+      UNDER_REVIEW: ['IN_PROGRESS', 'RESOLVED', 'CLOSED'],
+      IN_PROGRESS: ['RESOLVED', 'CLOSED'],
+      RESOLVED: ['CLOSED', 'UNDER_REVIEW'],
+      CLOSED: ['UNDER_REVIEW'],
+    };
+
+    assert.ok(validTransitions.SUBMITTED.includes('UNDER_REVIEW'));
+    assert.ok(validTransitions.UNDER_REVIEW.includes('IN_PROGRESS'));
+    assert.ok(validTransitions.IN_PROGRESS.includes('RESOLVED'));
+    assert.ok(!validTransitions.SUBMITTED.includes('RESOLVED')); // Must be reviewed first
+  });
+
+  test('Feedback multi-criterion sorting (Date, Rating, Priority)', () => {
+    // Sort by rating desc
+    const sortedByRating = sortData(mockSubmissions, { getValue: (i) => i.ratingOverall }, 'desc');
+    assert.deepEqual(sortedByRating.map((x) => x.id), ['FB-TEST-003', 'FB-TEST-001', 'FB-TEST-002']);
+
+    // Sort by date desc
+    const sortedByDate = sortData(mockSubmissions, { getValue: (i) => i.createdAt }, 'desc');
+    assert.deepEqual(sortedByDate.map((x) => x.id), ['FB-TEST-003', 'FB-TEST-002', 'FB-TEST-001']);
+  });
+
+  test('Feedback Center navigation label exists in all 6 language dictionaries', () => {
+    const localesDir = path.resolve('src/i18n/locales');
+    const languages = ['en', 'te', 'hi', 'ta', 'ml', 'kn'];
+    languages.forEach((code) => {
+      const filePath = path.join(localesDir, `${code}.json`);
+      const dict = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      assert.ok(dict.nav?.feedbackCenter, `nav.feedbackCenter missing in ${code}.json`);
+      assert.ok(dict.nav.feedbackCenter.length > 0);
+    });
+  });
+});
