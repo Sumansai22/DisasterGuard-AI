@@ -21,7 +21,19 @@ export const ImageComparisonSlider: React.FC<ImageComparisonSliderProps> = ({
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [showAiOverlay, setShowAiOverlay] = useState<boolean>(showAiOverlayDefault);
   const [zoomLevel, setZoomLevel] = useState<number>(1);
+  const [containerWidth, setContainerWidth] = useState<number>(0);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const updateWidth = () => {
+      if (containerRef.current) {
+        setContainerWidth(containerRef.current.clientWidth);
+      }
+    };
+    updateWidth();
+    window.addEventListener('resize', updateWidth);
+    return () => window.removeEventListener('resize', updateWidth);
+  }, []);
 
   const handleMove = useCallback(
     (clientX: number) => {
@@ -171,7 +183,7 @@ export const ImageComparisonSlider: React.FC<ImageComparisonSliderProps> = ({
         >
           <div
             className="absolute inset-0 w-full h-full"
-            style={{ width: `${containerRef.current?.clientWidth || 800}px` }}
+            style={{ width: containerWidth > 0 ? `${containerWidth}px` : '100%' }}
           >
             <img
               src={preImage.url}
