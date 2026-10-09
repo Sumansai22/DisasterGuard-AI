@@ -9,6 +9,8 @@ import { InteractiveDemoTourModal } from '../demo/InteractiveDemoTourModal';
 import { useTranslation } from '../../i18n';
 import { AlertOctagon } from 'lucide-react';
 
+import { Breadcrumbs } from '../common/Breadcrumbs';
+
 export const AppLayout: React.FC = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
@@ -48,7 +50,8 @@ export const AppLayout: React.FC = () => {
             setMobileDrawerOpen={setMobileDrawerOpen}
           />
 
-          <main className="flex-1 p-3 sm:p-4 md:p-6 lg:p-8 max-w-[1600px] w-full mx-auto min-w-0 box-border space-y-6">
+          <main className="flex-1 p-3 sm:p-4 md:p-6 lg:p-8 max-w-[1600px] w-full mx-auto min-w-0 box-border space-y-4">
+            <Breadcrumbs />
             <Outlet />
           </main>
 

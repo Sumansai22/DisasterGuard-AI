@@ -33,12 +33,13 @@ import { damageAssessmentService } from '../services/damageAssessmentService';
 import { StationManager } from '../components/admin/StationManager';
 import { ThresholdConfig } from '../components/admin/ThresholdConfig';
 import { SystemStatusIndicator } from '../components/common/SystemStatus';
+import { RoleSwitcherModal } from '../components/common/RoleSwitcherModal';
 
 type AdminTab =
   | 'overview'
   | 'users'
-  | 'incidents'
   | 'assessments'
+  | 'incidents'
   | 'aimodels'
   | 'integrations'
   | 'auditlogs'
@@ -49,6 +50,7 @@ export const AdminPage: React.FC = () => {
   const { currentUser, allUsers, addUser, toggleUserStatus, updateUser } = useAuth();
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
   const [assessments, setAssessments] = useState<DamageAssessmentRecord[]>([]);
+  const [showRoleModal, setShowRoleModal] = useState<boolean>(false);
 
   // User management state
   const [userSearch, setUserSearch] = useState('');
@@ -61,6 +63,39 @@ export const AdminPage: React.FC = () => {
   useEffect(() => {
     setAssessments(damageAssessmentService.getAllAssessments());
   }, []);
+
+  // RBAC Access Control Guard
+  if (currentUser.role !== 'ADMIN') {
+    return (
+      <div className="bg-white border border-slate-200 rounded-2xl p-8 max-w-xl mx-auto my-12 text-center space-y-4 shadow-sm">
+        <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto border border-amber-200">
+          <ShieldCheck className="w-8 h-8" />
+        </div>
+        <h2 className="text-xl font-bold text-slate-900">Administrator Access Required</h2>
+        <p className="text-xs text-slate-600 leading-relaxed">
+          The Admin Center is restricted to authorized Disaster Commissioners and Root Administrators. You are currently logged in as <strong>{currentUser.name}</strong> ({currentUser.role}).
+        </p>
+        <div className="pt-2 flex items-center justify-center gap-3">
+          <button
+            onClick={() => setShowRoleModal(true)}
+            className="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-xl text-xs font-bold shadow-sm transition-colors cursor-pointer"
+          >
+            Switch to Admin Persona
+          </button>
+          <Link
+            to="/"
+            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors"
+          >
+            Return to Overview
+          </Link>
+        </div>
+        <RoleSwitcherModal
+          isOpen={showRoleModal}
+          onClose={() => setShowRoleModal(false)}
+        />
+      </div>
+    );
+  }
 
   // Filter users
   const filteredUsers = allUsers.filter(
@@ -162,15 +197,15 @@ export const AdminPage: React.FC = () => {
       {/* Structured Admin Navigation Bar */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-2 border-b border-slate-200 text-xs">
         {[
-          { key: 'overview', label: 'Overview', icon: Activity },
-          { key: 'users', label: 'Users & RBAC', icon: Users },
-          { key: 'assessments', label: 'Damage Prioritization', icon: Layers },
-          { key: 'aimodels', label: 'AI/ML Models', icon: Cpu },
-          { key: 'integrations', label: 'Data Feeds & Telemetry', icon: Server },
-          { key: 'auditlogs', label: 'Audit Trail', icon: FileText },
-          { key: 'reports', label: 'Reports & Exports', icon: Download },
-          { key: 'config', label: 'Thresholds & Config', icon: Sliders },
-          { key: 'incidents', label: 'Telemetry Stations', icon: MapPin },
+          { key: 'overview', label: 'System Overview', icon: Activity },
+          { key: 'users', label: 'Users & Roles', icon: Users },
+          { key: 'assessments', label: 'Assessment Records', icon: Layers },
+          { key: 'incidents', label: 'Incident Management', icon: MapPin },
+          { key: 'aimodels', label: 'AI Model Status', icon: Cpu },
+          { key: 'integrations', label: 'Backend & Integration Health', icon: Server },
+          { key: 'auditlogs', label: 'Audit Logs', icon: FileText },
+          { key: 'reports', label: 'Reports', icon: Download },
+          { key: 'config', label: 'Application Settings', icon: Sliders },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.key;

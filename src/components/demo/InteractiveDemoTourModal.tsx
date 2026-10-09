@@ -35,6 +35,8 @@ import {
   Waves,
   ListFilter,
   UserCheck,
+  FileText,
+  ShieldAlert,
 } from 'lucide-react';
 import { useDemoTour } from '../../context/DemoTourContext';
 import { DEMO_FEATURES } from '../../data/demoTourData';
@@ -111,6 +113,10 @@ export const InteractiveDemoTourModal: React.FC = () => {
         return <ListFilter className="w-5 h-5" />;
       case 'UserCheck':
         return <UserCheck className="w-5 h-5" />;
+      case 'FileText':
+        return <FileText className="w-5 h-5" />;
+      case 'ShieldAlert':
+        return <ShieldAlert className="w-5 h-5" />;
       default:
         return <Sparkles className="w-5 h-5" />;
     }
@@ -140,7 +146,7 @@ export const InteractiveDemoTourModal: React.FC = () => {
                 ? 'Step 0: System Architecture & Triage Pipeline'
                 : isSummary
                 ? 'Final Step: Hackathon Value Proposition'
-                : `Feature ${currentFeature?.stepNumber} of 12: ${currentFeature?.name}`}
+                : `Feature ${currentFeature?.stepNumber} of ${DEMO_FEATURES.length}: ${currentFeature?.name}`}
             </p>
           </div>
         </div>
@@ -569,7 +575,7 @@ export const InteractiveDemoTourModal: React.FC = () => {
         {/* Step Indicator & Jump Dots */}
         <div className="flex items-center gap-2 overflow-x-auto max-w-full pb-1 sm:pb-0">
           <span className="text-xs font-mono text-slate-400 shrink-0">
-            {isOverview ? 'Overview' : isSummary ? 'Summary' : `${currentStepIndex} of 12`}
+            {isOverview ? 'Overview' : isSummary ? 'Summary' : `${currentStepIndex} of ${DEMO_FEATURES.length}`}
           </span>
 
           <div className="flex items-center gap-1 shrink-0">

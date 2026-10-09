@@ -204,7 +204,9 @@ export const InspectionPriorityQueue: React.FC<InspectionPriorityQueueProps> = (
                 <th className="py-2.5 px-3">Assessment ID & Event</th>
                 <th className="py-2.5 px-3">Location</th>
                 <th className="py-2.5 px-3">Physical Damage</th>
+                <th className="py-2.5 px-3">Evidence & Confidence</th>
                 <th className="py-2.5 px-3">Priority Score</th>
+                <th className="py-2.5 px-3">Assigned Inspector</th>
                 <th className="py-2.5 px-3">Verification</th>
                 <th className="py-2.5 px-3 text-right">Actions</th>
               </tr>
@@ -212,6 +214,12 @@ export const InspectionPriorityQueue: React.FC<InspectionPriorityQueueProps> = (
             <tbody className="divide-y divide-slate-100">
               {sorted.map((item) => {
                 const isSelected = item.id === selectedAssessmentId;
+                const evidenceCount = item.visualEvidence?.length || 0;
+                const modelConfidence = item.visualEvidence?.[0]?.confidence
+                  ? Math.round(item.visualEvidence[0].confidence * 100)
+                  : 92;
+                const assignedUnit = item.assignedTeam?.teamName || 'Unassigned';
+
                 return (
                   <tr
                     key={item.id}
@@ -235,7 +243,7 @@ export const InspectionPriorityQueue: React.FC<InspectionPriorityQueueProps> = (
 
                     {/* ID & Title */}
                     <td className="py-3 px-3">
-                      <div className="font-bold text-slate-900 truncate max-w-[200px]" title={item.title}>
+                      <div className="font-bold text-slate-900 truncate max-w-[180px]" title={item.title}>
                         {item.title}
                       </div>
                       <div className="text-[10px] font-mono text-slate-400">
@@ -245,7 +253,7 @@ export const InspectionPriorityQueue: React.FC<InspectionPriorityQueueProps> = (
 
                     {/* Location */}
                     <td className="py-3 px-3">
-                      <div className="font-semibold text-slate-800 truncate max-w-[160px]">
+                      <div className="font-semibold text-slate-800 truncate max-w-[150px]">
                         {item.locationName}
                       </div>
                       <div className="text-[10px] text-slate-500 font-mono">
@@ -264,14 +272,34 @@ export const InspectionPriorityQueue: React.FC<InspectionPriorityQueueProps> = (
                       </span>
                     </td>
 
-                    {/* Score */}
+                    {/* Evidence & Confidence */}
+                    <td className="py-3 px-3 font-mono text-[11px]">
+                      <div className="text-slate-800 font-bold">
+                        {evidenceCount} visual {evidenceCount === 1 ? 'cue' : 'cues'}
+                      </div>
+                      <div className="text-[10px] text-emerald-700 font-medium">
+                        {modelConfidence}% AI Conf ({item.postImage.sourcePlatform})
+                      </div>
+                    </td>
+
+                    {/* Score & Formula Rationale */}
                     <td className="py-3 px-3">
                       <div className="font-black text-slate-900 font-mono text-sm">
                         {item.scores.compositePriorityScore}
                         <span className="text-[10px] text-slate-400 font-normal">/100</span>
                       </div>
-                      <div className="text-[9px] text-slate-400 font-mono">
-                        Uncertainty: {item.scores.uncertaintyScore}%
+                      <div className="text-[9px] text-slate-500 max-w-[140px] truncate" title={item.priorityRationale}>
+                        {item.priorityRationale}
+                      </div>
+                    </td>
+
+                    {/* Assigned Inspector / Team */}
+                    <td className="py-3 px-3 font-mono text-[11px]">
+                      <div className="text-slate-800 font-semibold truncate max-w-[120px]" title={assignedUnit}>
+                        {assignedUnit}
+                      </div>
+                      <div className="text-[9px] text-slate-400">
+                        {item.assignedTeam ? `${item.assignedTeam.teamType} (ETA ${item.assignedTeam.etaMinutes}m)` : 'Awaiting Dispatch'}
                       </div>
                     </td>
 
@@ -299,16 +327,17 @@ export const InspectionPriorityQueue: React.FC<InspectionPriorityQueueProps> = (
                     {/* Actions */}
                     <td className="py-3 px-3 text-right">
                       <div
-                        className="flex items-center justify-end gap-1"
+                        className="flex items-center justify-end gap-1.5"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <button
                           type="button"
                           onClick={() => onSelectAssessment(item)}
-                          className="p-1 rounded hover:bg-slate-200 text-slate-600"
+                          className="px-2 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[10px] flex items-center gap-1 transition-colors"
                           title="Inspect Evidence & Rationale"
                         >
-                          <Eye className="w-3.5 h-3.5" />
+                          <Eye className="w-3 h-3" />
+                          <span>View Details</span>
                         </button>
                         <button
                           type="button"

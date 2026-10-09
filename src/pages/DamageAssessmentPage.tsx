@@ -18,7 +18,7 @@ import {
   ArrowRight,
   Sparkles,
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { DamageAssessmentRecord } from '../types/damageAssessment';
 import { damageAssessmentService } from '../services/damageAssessmentService';
@@ -28,18 +28,27 @@ import { ImageUploadModal } from '../components/damage/ImageUploadModal';
 import { HumanVerificationModal } from '../components/damage/HumanVerificationModal';
 import { AssignTeamModal } from '../components/damage/AssignTeamModal';
 import { DamageReportModal } from '../components/damage/DamageReportModal';
+import { DamageAssessmentWizard } from '../components/damage/DamageAssessmentWizard';
 import { RiskMap } from '../components/map/RiskMap';
 
 export const DamageAssessmentPage: React.FC = () => {
   const { setMapCenter, setMapZoom } = useApp();
+  const [searchParams] = useSearchParams();
   const [assessments, setAssessments] = useState<DamageAssessmentRecord[]>([]);
   const [selectedAssessment, setSelectedAssessment] = useState<DamageAssessmentRecord | null>(null);
 
   // Modals
+  const [showWizardModal, setShowWizardModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get('action') === 'wizard') {
+      setShowWizardModal(true);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const records = damageAssessmentService.getAllAssessments();
@@ -115,11 +124,19 @@ export const DamageAssessmentPage: React.FC = () => {
         {/* Global Workspace Actions */}
         <div className="flex items-center gap-2 flex-wrap">
           <button
-            onClick={() => setShowUploadModal(true)}
-            className="px-3.5 py-2 rounded-xl text-xs font-extrabold text-white bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 shadow-md shadow-orange-600/30 flex items-center gap-1.5 transition-transform active:scale-95 cursor-pointer"
+            onClick={() => setShowWizardModal(true)}
+            className="px-4 py-2 rounded-xl text-xs font-black text-white bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 shadow-md shadow-orange-600/30 flex items-center gap-1.5 transition-transform active:scale-95 cursor-pointer"
+            title="Open 7-step guided damage assessment wizard"
           >
-            <Upload className="w-4 h-4" />
-            <span>Upload New Imagery Pair</span>
+            <Sparkles className="w-4 h-4 text-orange-200" />
+            <span>Start Guided Wizard</span>
+          </button>
+          <button
+            onClick={() => setShowUploadModal(true)}
+            className="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-800 bg-white hover:bg-slate-50 border border-slate-300 shadow-2xs flex items-center gap-1.5 transition-colors cursor-pointer"
+          >
+            <Upload className="w-4 h-4 text-slate-600" />
+            <span>Upload Imagery</span>
           </button>
           <button
             onClick={() => setShowReportModal(true)}
@@ -466,6 +483,12 @@ export const DamageAssessmentPage: React.FC = () => {
         isOpen={showReportModal}
         onClose={() => setShowReportModal(false)}
         assessment={selectedAssessment}
+      />
+
+      <DamageAssessmentWizard
+        isOpen={showWizardModal}
+        onClose={() => setShowWizardModal(false)}
+        onAssessmentCompleted={handleAssessmentCreated}
       />
     </div>
   );

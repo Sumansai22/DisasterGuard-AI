@@ -20,6 +20,7 @@ import {
   Radio,
   Compass,
   Users,
+  Sliders,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
@@ -32,6 +33,19 @@ interface SidebarProps {
   setCollapsed: (collapsed: boolean) => void;
   mobileOpen?: boolean;
   setMobileOpen?: (open: boolean) => void;
+}
+
+interface NavItem {
+  name: string;
+  path: string;
+  icon: any;
+  badge?: string;
+  badgeCount?: number;
+}
+
+interface NavGroup {
+  groupName: string;
+  items: NavItem[];
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -53,23 +67,42 @@ export const Sidebar: React.FC<SidebarProps> = ({
       .catch(() => setIsUnetReady(false));
   }, []);
 
-  const navItems = [
-    { name: t('nav.dashboard', 'Dashboard'), path: '/', icon: LayoutDashboard },
-    { name: 'Damage Prioritization', path: '/damage-assessment', icon: Building2, badge: 'PS-53 CORE' },
-    { name: 'Inspector Workspace', path: '/inspector-workspace', icon: Compass, badge: 'FIELD' },
-    { name: 'Citizen Portal', path: '/portal', icon: Users, badge: 'REPORT' },
-    { name: t('nav.missionControl', 'Mission Control'), path: '/mission-control', icon: Radio, badge: 'OPS' },
-    { name: t('nav.riskMap', 'Risk Map'), path: '/risk-map', icon: MapPin },
-    { name: t('nav.riskPrediction', 'AI Risk Prediction'), path: '/prediction', icon: BrainCircuit, badge: 'RF 9-Param' },
-    { name: t('nav.droneRescue', 'Drone Rescue'), path: '/drone-rescue', icon: Crosshair, badge: 'AI UAV' },
-    { name: t('nav.aiLandScan', 'AI Land Scan'), path: '/ai-land-scan', icon: ScanLine, badge: 'U-Net 2D' },
-    { name: t('nav.rainfall', 'Rainfall Monitoring'), path: '/rainfall', icon: CloudRain },
-    { name: t('nav.impactAnalysis', 'Impact Analysis'), path: '/impact-analysis', icon: Layers },
-    { name: t('nav.evacuation', 'Evacuation Routes'), path: '/evacuation', icon: Navigation },
-    { name: t('nav.alerts', 'Alerts'), path: '/alerts', icon: BellRing, badgeCount: 4 },
-    { name: t('nav.historical', 'Historical Analysis'), path: '/historical', icon: History },
-    { name: t('nav.analytics', 'Analytics'), path: '/analytics', icon: BarChart3 },
-    { name: t('nav.admin', 'Admin'), path: '/admin', icon: ShieldCheck },
+  const navGroups: NavGroup[] = [
+    {
+      groupName: 'Main',
+      items: [
+        { name: 'Overview', path: '/', icon: LayoutDashboard },
+        { name: 'Damage Assessment', path: '/damage-assessment', icon: Building2, badge: 'PS-53' },
+        { name: 'Map & GIS', path: '/risk-map', icon: MapPin },
+        { name: 'Inspection Priorities', path: '/damage-assessment?tab=queue', icon: Compass },
+      ],
+    },
+    {
+      groupName: 'Response Operations',
+      items: [
+        { name: 'Drone & Rescue', path: '/drone-rescue', icon: Crosshair },
+        { name: 'Weather & Rainfall', path: '/rainfall', icon: CloudRain },
+        { name: 'Evacuation & Shelters', path: '/evacuation', icon: Navigation },
+        { name: 'Incidents & SOS', path: '/alerts', icon: Radio, badgeCount: 4 },
+      ],
+    },
+    {
+      groupName: 'Records',
+      items: [
+        { name: 'Reports & History', path: '/historical', icon: History },
+      ],
+    },
+    ...(currentUser.role === 'ADMIN'
+      ? [
+          {
+            groupName: 'Administration',
+            items: [
+              { name: 'Admin Center', path: '/admin', icon: ShieldCheck, badge: 'ROOT' },
+              { name: 'Settings', path: '/admin?tab=config', icon: Sliders },
+            ],
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -118,54 +151,58 @@ export const Sidebar: React.FC<SidebarProps> = ({
           )}
         </div>
 
-        {/* Navigation List */}
-        <nav className="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
-          <div
-            className={`px-2 pb-2 text-[11px] font-bold uppercase tracking-wider text-slate-500 ${
-              collapsed && !mobileOpen ? 'hidden' : 'block'
-            }`}
-          >
-            Monitoring & Operations
-          </div>
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                onClick={() => setMobileOpen?.(false)}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all group relative ${
-                    isActive
-                      ? 'bg-orange-600 text-white shadow-md shadow-orange-900/30'
-                      : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                  }`
-                }
-              >
-                <Icon className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110" />
-                {(!collapsed || mobileOpen) && <span className="truncate flex-1">{item.name}</span>}
+        {/* Navigation Groups List */}
+        <nav className="flex-1 px-3 py-3 space-y-4 overflow-y-auto">
+          {navGroups.map((group) => (
+            <div key={group.groupName} className="space-y-1">
+              {(!collapsed || mobileOpen) && (
+                <div className="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  {group.groupName}
+                </div>
+              )}
+              {group.items.map((item) => {
+                const Icon = item.icon;
+                const isExactRoot = item.path === '/';
+                return (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    end={isExactRoot}
+                    onClick={() => setMobileOpen?.(false)}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all group relative ${
+                        isActive
+                          ? 'bg-orange-600 text-white shadow-md shadow-orange-900/30'
+                          : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                      }`
+                    }
+                  >
+                    <Icon className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110" />
+                    {(!collapsed || mobileOpen) && <span className="truncate flex-1">{item.name}</span>}
 
-                {(!collapsed || mobileOpen) && item.badge && (
-                  <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-800 text-orange-400 border border-slate-700">
-                    {item.badge}
-                  </span>
-                )}
+                    {(!collapsed || mobileOpen) && item.badge && (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-800 text-orange-400 border border-slate-700">
+                        {item.badge}
+                      </span>
+                    )}
 
-                {(!collapsed || mobileOpen) && item.badgeCount && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-red-500 text-white animate-pulse">
-                    {item.badgeCount}
-                  </span>
-                )}
+                    {(!collapsed || mobileOpen) && item.badgeCount && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-red-500 text-white animate-pulse">
+                        {item.badgeCount}
+                      </span>
+                    )}
 
-                {/* Tooltip for collapsed desktop state */}
-                {collapsed && !mobileOpen && (
-                  <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-slate-900 text-white text-xs font-medium rounded-md shadow-xl opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50 whitespace-nowrap border border-slate-700">
-                    {item.name}
-                  </div>
-                )}
-              </NavLink>
-            );
-          })}
+                    {/* Tooltip for collapsed desktop state */}
+                    {collapsed && !mobileOpen && (
+                      <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-slate-900 text-white text-xs font-medium rounded-md shadow-xl opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50 whitespace-nowrap border border-slate-700">
+                        {item.name}
+                      </div>
+                    )}
+                  </NavLink>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
       {/* Sidebar Footer */}
