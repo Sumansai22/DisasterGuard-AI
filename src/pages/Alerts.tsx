@@ -30,13 +30,15 @@ export const AlertsPage: React.FC = () => {
     return <ErrorState message="Failed to load alert notifications" />;
   }
 
-  const filtered = alerts.filter(
-    (a) => filterSeverity === 'ALL' || a.severity === filterSeverity
+  const safeAlerts = Array.isArray(alerts) ? alerts : [];
+
+  const filtered = safeAlerts.filter(
+    (a) => a && (filterSeverity === 'ALL' || a.severity === filterSeverity)
   );
 
-  const criticalCount = alerts.filter((a) => a.severity === 'CRITICAL' && a.status === 'ACTIVE').length;
-  const highCount = alerts.filter((a) => a.severity === 'HIGH' && a.status === 'ACTIVE').length;
-  const acknowledgedCount = alerts.filter((a) => a.status === 'ACKNOWLEDGED').length;
+  const criticalCount = safeAlerts.filter((a) => a?.severity === 'CRITICAL' && a?.status === 'ACTIVE').length;
+  const highCount = safeAlerts.filter((a) => a?.severity === 'HIGH' && a?.status === 'ACTIVE').length;
+  const acknowledgedCount = safeAlerts.filter((a) => a?.status === 'ACKNOWLEDGED').length;
 
   return (
     <div className="space-y-6">

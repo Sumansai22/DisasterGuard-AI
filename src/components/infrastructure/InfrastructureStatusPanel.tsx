@@ -66,21 +66,25 @@ export const InfrastructureStatusPanel: React.FC<InfrastructureStatusPanelProps>
   }, [centerLat, centerLng, radiusKm]);
 
   // Aggregate stats
-  const operationalCount = items.filter(
-    (i) => i.status === 'OPERATIONAL' || i.status === 'NORMAL' || i.status === 'CLEAR'
+  const safeItems = Array.isArray(items) ? items : [];
+
+  const operationalCount = safeItems.filter(
+    (i) => i && (i.status === 'OPERATIONAL' || i.status === 'NORMAL' || i.status === 'CLEAR')
   ).length;
-  const atRiskCount = items.filter(
+  const atRiskCount = safeItems.filter(
     (i) =>
-      i.status === 'PARTIALLY_OPERATIONAL' ||
-      i.status === 'WATCH' ||
-      i.status === 'WARNING' ||
-      i.status === 'MONITORING'
+      i &&
+      (i.status === 'PARTIALLY_OPERATIONAL' ||
+        i.status === 'WATCH' ||
+        i.status === 'WARNING' ||
+        i.status === 'MONITORING')
   ).length;
-  const blockedOrDamagedCount = items.filter(
-    (i) => i.status === 'DAMAGED' || i.status === 'BLOCKED' || i.status === 'CRITICAL'
+  const blockedOrDamagedCount = safeItems.filter(
+    (i) => i && (i.status === 'DAMAGED' || i.status === 'BLOCKED' || i.status === 'CRITICAL')
   ).length;
 
-  const filteredItems = items.filter((item) => {
+  const filteredItems = safeItems.filter((item) => {
+    if (!item) return false;
     if (selectedType !== 'ALL' && item.type !== selectedType) return false;
     if (selectedStatus !== 'ALL') {
       if (selectedStatus === 'OPERATIONAL' && item.status !== 'OPERATIONAL' && item.status !== 'NORMAL')

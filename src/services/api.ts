@@ -35,9 +35,27 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response Interceptor
+// Response Interceptor: Validate response content type to prevent SPA index.html fallback from being treated as valid JSON data
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // If the server returns HTML instead of JSON (common in SPAs when a backend API route is missing or redirected to index.html)
+    const contentType = (response.headers?.['content-type'] as string) || '';
+    const isHtmlString =
+      typeof response.data === 'string' &&
+      (response.data.trim().startsWith('<!doctype') ||
+        response.data.trim().startsWith('<!DOCTYPE') ||
+        response.data.trim().startsWith('<html'));
+
+    if (contentType.includes('text/html') || isHtmlString) {
+      console.warn(
+        `[DisasterGuard API Notice]: Endpoint "${response.config.url}" returned HTML document instead of expected JSON payload. Treating as unavailable API route.`
+      );
+      return Promise.reject(
+        new Error(`API endpoint "${response.config.url}" returned HTML instead of expected JSON payload.`)
+      );
+    }
+    return response;
+  },
   (error: AxiosError) => {
     // Non-intrusive logging for resilient frontend fallback operation
     console.warn('[DisasterGuard API Network Notice]:', error.message);

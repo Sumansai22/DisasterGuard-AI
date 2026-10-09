@@ -57,7 +57,9 @@ export const IncidentTimeline: React.FC<IncidentTimelineProps> = ({
   }, []);
 
   // Filter events
-  let filtered = events.filter((ev) => {
+  const safeEvents = Array.isArray(events) ? events : [];
+  let filtered = safeEvents.filter((ev) => {
+    if (!ev) return false;
     if (incidentId && ev.incident_id && ev.incident_id !== incidentId) {
       return false;
     }

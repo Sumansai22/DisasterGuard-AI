@@ -10,6 +10,7 @@ import { useTranslation } from '../../i18n';
 import { AlertOctagon } from 'lucide-react';
 
 import { Breadcrumbs } from '../common/Breadcrumbs';
+import { ErrorBoundary } from '../common/ErrorBoundary';
 
 export const AppLayout: React.FC = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -52,7 +53,9 @@ export const AppLayout: React.FC = () => {
 
           <main className="flex-1 p-3 sm:p-4 md:p-6 lg:p-8 max-w-[1600px] w-full mx-auto min-w-0 box-border space-y-4">
             <Breadcrumbs />
-            <Outlet />
+            <ErrorBoundary fallbackTitle="View Module Error" fallbackMessage="An error occurred while loading this section of the platform. You can return to the dashboard or reload.">
+              <Outlet />
+            </ErrorBoundary>
           </main>
 
           <Footer />

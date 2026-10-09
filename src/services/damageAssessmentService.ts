@@ -19,7 +19,10 @@ class DamageAssessmentService {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        return JSON.parse(stored);
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          return parsed;
+        }
       }
     } catch (e) {
       console.warn('Failed to parse damage assessments from localStorage:', e);

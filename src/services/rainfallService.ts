@@ -57,11 +57,14 @@ export const rainfallService = {
 
   async getHistory(range: '24h' | '7d' | '30d' = '24h'): Promise<HourlyRainfall[]> {
     try {
-      const response = await apiClient.get<HourlyRainfall[]>('/rainfall/history', {
+      const response = await apiClient.get<unknown>('/rainfall/history', {
         params: { range },
       });
-      return response.data;
-    } catch (error) {
+      if (Array.isArray(response.data)) {
+        return response.data as HourlyRainfall[];
+      }
+      return MOCK_HOURLY_TREND;
+    } catch {
       return MOCK_HOURLY_TREND;
     }
   }

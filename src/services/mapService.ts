@@ -32,8 +32,14 @@ export interface DisasterMapContextResponse {
 export const mapService = {
   async getRiskZones(): Promise<RiskZonePolygon[]> {
     try {
-      const response = await apiClient.get<RiskZonePolygon[]>('/risk-zones');
-      return response.data;
+      const response = await apiClient.get<unknown>('/risk-zones');
+      if (Array.isArray(response.data)) {
+        return response.data as RiskZonePolygon[];
+      }
+      if (response.data && typeof response.data === 'object' && Array.isArray((response.data as Record<string, unknown>).zones)) {
+        return (response.data as Record<string, unknown>).zones as RiskZonePolygon[];
+      }
+      return RISK_ZONES;
     } catch {
       return RISK_ZONES;
     }
@@ -41,8 +47,14 @@ export const mapService = {
 
   async getMonitoringStations(): Promise<MonitoringStation[]> {
     try {
-      const response = await apiClient.get<MonitoringStation[]>('/stations');
-      return response.data;
+      const response = await apiClient.get<unknown>('/stations');
+      if (Array.isArray(response.data)) {
+        return response.data as MonitoringStation[];
+      }
+      if (response.data && typeof response.data === 'object' && Array.isArray((response.data as Record<string, unknown>).stations)) {
+        return (response.data as Record<string, unknown>).stations as MonitoringStation[];
+      }
+      return stationsState;
     } catch {
       return stationsState;
     }

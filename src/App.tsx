@@ -24,16 +24,18 @@ import { DamageAssessmentPage } from './pages/DamageAssessmentPage';
 import { FieldInspectorPage } from './pages/FieldInspectorPage';
 import { UserPortalPage } from './pages/UserPortalPage';
 import { DemoTourProvider } from './context/DemoTourContext';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 export const App: React.FC = () => {
   return (
-    <LanguageProvider>
-      <AppProvider>
-        <AuthProvider>
-          <PredictionProvider>
-            <BrowserRouter>
-              <DemoTourProvider>
-                <Routes>
+    <ErrorBoundary>
+      <LanguageProvider>
+        <AppProvider>
+          <AuthProvider>
+            <PredictionProvider>
+              <BrowserRouter>
+                <DemoTourProvider>
+                  <Routes>
                   <Route path="/" element={<AppLayout />}>
                     <Route index element={<DashboardPage />} />
                     <Route path="mission-control" element={<MissionControlPage />} />
@@ -66,6 +68,7 @@ export const App: React.FC = () => {
         </AuthProvider>
       </AppProvider>
     </LanguageProvider>
+  </ErrorBoundary>
   );
 };
 

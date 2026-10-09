@@ -81,7 +81,9 @@ export const MissionControlPage: React.FC = () => {
   }, []);
 
   // Filtered incidents
-  const filteredIncidents = incidents.filter((inc) => {
+  const safeIncidents = Array.isArray(incidents) ? incidents : [];
+  const filteredIncidents = safeIncidents.filter((inc) => {
+    if (!inc) return false;
     if (statusFilter !== 'ALL' && inc.status !== statusFilter) return false;
     if (priorityFilter !== 'ALL' && inc.priority !== priorityFilter) return false;
     return true;
@@ -201,9 +203,9 @@ export const MissionControlPage: React.FC = () => {
     }
   };
 
-  const activeCount = incidents.filter((i) => i.status !== 'RESOLVED' && i.status !== 'CLOSED').length;
-  const criticalCount = incidents.filter((i) => i.priority === 'CRITICAL' && i.status !== 'CLOSED').length;
-  const dispatchedCount = incidents.filter((i) => i.status === 'DISPATCHED' || i.status === 'RESPONDING').length;
+  const activeCount = safeIncidents.filter((i) => i && i.status !== 'RESOLVED' && i.status !== 'CLOSED').length;
+  const criticalCount = safeIncidents.filter((i) => i && i.priority === 'CRITICAL' && i.status !== 'CLOSED').length;
+  const dispatchedCount = safeIncidents.filter((i) => i && (i.status === 'DISPATCHED' || i.status === 'RESPONDING')).length;
 
   return (
     <div className="space-y-5 animate-fadeIn min-w-0">

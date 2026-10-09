@@ -97,13 +97,17 @@ export const AdminPage: React.FC = () => {
     );
   }
 
+  const safeUsers = Array.isArray(allUsers) ? allUsers : [];
+  const safeAssessments = Array.isArray(assessments) ? assessments : [];
+
   // Filter users
-  const filteredUsers = allUsers.filter(
+  const filteredUsers = safeUsers.filter(
     (u) =>
-      u.name.toLowerCase().includes(userSearch.toLowerCase()) ||
-      u.email.toLowerCase().includes(userSearch.toLowerCase()) ||
-      u.agency.toLowerCase().includes(userSearch.toLowerCase()) ||
-      u.role.toLowerCase().includes(userSearch.toLowerCase())
+      u &&
+      (u.name.toLowerCase().includes(userSearch.toLowerCase()) ||
+        u.email.toLowerCase().includes(userSearch.toLowerCase()) ||
+        u.agency.toLowerCase().includes(userSearch.toLowerCase()) ||
+        u.role.toLowerCase().includes(userSearch.toLowerCase()))
   );
 
   // Export assessments to CSV
@@ -235,20 +239,20 @@ export const AdminPage: React.FC = () => {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs">
               <span className="text-[10px] font-mono font-bold uppercase text-slate-400 block">TOTAL USERS</span>
-              <span className="text-2xl font-black text-slate-900 font-mono mt-1 block">{allUsers.length}</span>
+              <span className="text-2xl font-black text-slate-900 font-mono mt-1 block">{safeUsers.length}</span>
               <span className="text-[11px] text-emerald-600 font-semibold">Active Authorized Accounts</span>
             </div>
 
             <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs">
               <span className="text-[10px] font-mono font-bold uppercase text-slate-400 block">DAMAGE ASSESSMENTS</span>
-              <span className="text-2xl font-black text-orange-600 font-mono mt-1 block">{assessments.length}</span>
+              <span className="text-2xl font-black text-orange-600 font-mono mt-1 block">{safeAssessments.length}</span>
               <span className="text-[11px] text-slate-500">PS-53 Ingested Records</span>
             </div>
 
             <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs">
               <span className="text-[10px] font-mono font-bold uppercase text-slate-400 block">CRITICAL P1 TASKS</span>
               <span className="text-2xl font-black text-red-600 font-mono mt-1 block">
-                {assessments.filter((a) => a.priorityTier === 'P1_URGENT').length}
+                {safeAssessments.filter((a) => a?.priorityTier === 'P1_URGENT').length}
               </span>
               <span className="text-[11px] text-red-700 font-semibold">Urgent Field Deployments</span>
             </div>
@@ -270,12 +274,12 @@ export const AdminPage: React.FC = () => {
 
               <div className="space-y-2.5">
                 {[
-                  { tier: 'P1_URGENT', label: 'P1 URGENT (< 2 Hours)', color: 'bg-red-500', count: assessments.filter((a) => a.priorityTier === 'P1_URGENT').length },
-                  { tier: 'P2_HIGH', label: 'P2 HIGH (< 6 Hours)', color: 'bg-orange-500', count: assessments.filter((a) => a.priorityTier === 'P2_HIGH').length },
-                  { tier: 'P3_MEDIUM', label: 'P3 MEDIUM (< 24 Hours)', color: 'bg-amber-500', count: assessments.filter((a) => a.priorityTier === 'P3_MEDIUM').length },
-                  { tier: 'P4_LOW', label: 'P4 LOW (Routine Survey)', color: 'bg-emerald-500', count: assessments.filter((a) => a.priorityTier === 'P4_LOW').length },
+                  { tier: 'P1_URGENT', label: 'P1 URGENT (< 2 Hours)', color: 'bg-red-500', count: safeAssessments.filter((a) => a?.priorityTier === 'P1_URGENT').length },
+                  { tier: 'P2_HIGH', label: 'P2 HIGH (< 6 Hours)', color: 'bg-orange-500', count: safeAssessments.filter((a) => a?.priorityTier === 'P2_HIGH').length },
+                  { tier: 'P3_MEDIUM', label: 'P3 MEDIUM (< 24 Hours)', color: 'bg-amber-500', count: safeAssessments.filter((a) => a?.priorityTier === 'P3_MEDIUM').length },
+                  { tier: 'P4_LOW', label: 'P4 LOW (Routine Survey)', color: 'bg-emerald-500', count: safeAssessments.filter((a) => a?.priorityTier === 'P4_LOW').length },
                 ].map((item) => {
-                  const pct = assessments.length > 0 ? (item.count / assessments.length) * 100 : 0;
+                  const pct = safeAssessments.length > 0 ? (item.count / safeAssessments.length) * 100 : 0;
                   return (
                     <div key={item.tier} className="space-y-1">
                       <div className="flex items-center justify-between font-mono text-[11px]">

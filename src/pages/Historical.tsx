@@ -64,8 +64,9 @@ export const HistoricalPage: React.FC = () => {
     return <LoadingSpinner message="Retrieving Multi-Decadal GSI Geological Records..." fullHeight />;
   }
 
-  const filteredEvents = events.filter(
-    (e) => selectedState === 'ALL' || e.state === selectedState
+  const safeEvents = Array.isArray(events) ? events : [];
+  const filteredEvents = safeEvents.filter(
+    (e) => e && (selectedState === 'ALL' || e.state === selectedState)
   );
 
   return (

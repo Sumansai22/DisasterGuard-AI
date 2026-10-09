@@ -76,11 +76,38 @@ const INITIAL_ALERTS: EmergencyAlert[] = [
 // Local state cache for persistent simulation during user interaction
 let localAlerts = [...INITIAL_ALERTS];
 
+function isValidAlert(item: unknown): item is EmergencyAlert {
+  if (!item || typeof item !== 'object') return false;
+  const a = item as Record<string, unknown>;
+  return typeof a.id === 'string' && typeof a.severity === 'string' && typeof a.title === 'string';
+}
+
+function parseAlertsPayload(data: unknown): EmergencyAlert[] | null {
+  if (Array.isArray(data)) {
+    return data.filter(isValidAlert);
+  }
+  if (data && typeof data === 'object') {
+    const obj = data as Record<string, unknown>;
+    if (Array.isArray(obj.alerts)) {
+      return obj.alerts.filter(isValidAlert);
+    }
+    if (Array.isArray(obj.data)) {
+      return obj.data.filter(isValidAlert);
+    }
+  }
+  return null;
+}
+
 export const alertService = {
   async getAlerts(): Promise<EmergencyAlert[]> {
     try {
-      const response = await apiClient.get<EmergencyAlert[]>('/alerts');
-      return response.data;
+      const response = await apiClient.get<unknown>('/alerts');
+      const parsed = parseAlertsPayload(response.data);
+      if (parsed !== null) {
+        return parsed;
+      }
+      console.warn('[alertService] Non-array payload received from /alerts, using local fallback:', response.data);
+      return [...localAlerts];
     } catch (error) {
       return [...localAlerts];
     }

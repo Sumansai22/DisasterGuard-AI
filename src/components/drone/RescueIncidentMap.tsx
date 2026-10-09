@@ -30,7 +30,8 @@ export const RescueIncidentMap: React.FC<RescueIncidentMapProps> = ({
   onVerify,
 }) => {
   // Determine center coordinates
-  const gpsDetections = detections.filter((d) => d.latitude && d.longitude);
+  const safeDetections = Array.isArray(detections) ? detections : [];
+  const gpsDetections = safeDetections.filter((d) => d && d.latitude && d.longitude);
 
   const defaultLat = telemetry?.latitude || (gpsDetections.length > 0 ? gpsDetections[0].latitude! : 16.5448);
   const defaultLng = telemetry?.longitude || (gpsDetections.length > 0 ? gpsDetections[0].longitude! : 81.5212);

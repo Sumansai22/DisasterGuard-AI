@@ -45,15 +45,17 @@ export const RescueDetectionsPanel: React.FC<RescueDetectionsPanelProps> = ({
     LOW: 4,
   };
 
-  const sortedDetections = [...detections].sort((a, b) => {
-    const rankDiff = (priorityRank[a.priority] || 5) - (priorityRank[b.priority] || 5);
+  const safeDetections = Array.isArray(detections) ? detections : [];
+
+  const sortedDetections = [...safeDetections].sort((a, b) => {
+    const rankDiff = (priorityRank[a?.priority] || 5) - (priorityRank[b?.priority] || 5);
     if (rankDiff !== 0) return rankDiff;
-    return b.distress_score - a.distress_score;
+    return (b?.distress_score || 0) - (a?.distress_score || 0);
   });
 
-  const highPriorityList = sortedDetections.filter((d) => d.priority === 'CRITICAL' || d.priority === 'HIGH');
-  const mediumPriorityList = sortedDetections.filter((d) => d.priority === 'MEDIUM');
-  const lowPriorityList = sortedDetections.filter((d) => d.priority === 'LOW');
+  const highPriorityList = sortedDetections.filter((d) => d && (d.priority === 'CRITICAL' || d.priority === 'HIGH'));
+  const mediumPriorityList = sortedDetections.filter((d) => d && d.priority === 'MEDIUM');
+  const lowPriorityList = sortedDetections.filter((d) => d && d.priority === 'LOW');
 
   const renderDetectionCard = (det: TrackedPersonDetection) => {
     const isSelected = selectedDetectionId === det.detection_id;

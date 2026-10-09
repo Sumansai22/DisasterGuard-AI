@@ -743,7 +743,7 @@ export const RiskMap: React.FC<RiskMapProps> = ({
         )}
 
         {/* 10. PS-53 DAMAGE PRIORITIZATION ASSESSMENTS */}
-        {damageAssessments.map((asmt) => (
+        {(Array.isArray(damageAssessments) ? damageAssessments : []).map((asmt) => (
           <Marker
             key={asmt.id}
             position={[asmt.coordinates.lat, asmt.coordinates.lng]}

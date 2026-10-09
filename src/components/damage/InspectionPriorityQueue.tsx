@@ -49,12 +49,14 @@ export const InspectionPriorityQueue: React.FC<InspectionPriorityQueueProps> = (
   const [sortBy, setSortBy] = useState<'score' | 'date' | 'uncertainty'>('score');
 
   // Filter and sort
-  const filtered = assessments.filter((item) => {
+  const safeAssessments = Array.isArray(assessments) ? assessments : [];
+  const filtered = safeAssessments.filter((item) => {
+    if (!item) return false;
     const matchesSearch =
-      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.locationName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.district.toLowerCase().includes(searchQuery.toLowerCase());
+      (item.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.locationName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.id || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.district || '').toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesPriority = priorityFilter === 'ALL' || item.priorityTier === priorityFilter;
     const matchesVerification = verificationFilter === 'ALL' || item.verificationStatus === verificationFilter;

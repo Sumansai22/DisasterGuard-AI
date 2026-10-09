@@ -11,9 +11,15 @@ export function useAlerts() {
     try {
       setIsLoading(true);
       const data = await alertService.getAlerts();
-      setAlerts(data);
+      if (Array.isArray(data)) {
+        setAlerts(data);
+      } else {
+        console.warn('[useAlerts] Received non-array data from alertService, resetting to empty array:', data);
+        setAlerts([]);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to load emergency alerts');
+      setAlerts([]);
     } finally {
       setIsLoading(false);
     }

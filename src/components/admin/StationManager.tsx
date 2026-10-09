@@ -45,14 +45,15 @@ export const StationManager: React.FC = () => {
       status: 'ONLINE',
     };
 
-    setStations([newStation, ...stations]);
+    const safeStations = Array.isArray(stations) ? stations : [];
+    setStations([newStation, ...safeStations]);
     setAddModalOpen(false);
     setName('');
     setRegion('');
   };
 
   const handleDeleteStation = (id: string) => {
-    setStations(stations.filter((s) => s.id !== id));
+    setStations((prev) => (Array.isArray(prev) ? prev.filter((s) => s.id !== id) : []));
     setDeleteConfirmId(null);
   };
 

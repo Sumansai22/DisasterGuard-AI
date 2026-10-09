@@ -52,9 +52,10 @@ export const DamageAssessmentPage: React.FC = () => {
 
   useEffect(() => {
     const records = damageAssessmentService.getAllAssessments();
-    setAssessments(records);
-    if (records.length > 0) {
-      setSelectedAssessment(records[0]);
+    const safeRecords = Array.isArray(records) ? records : [];
+    setAssessments(safeRecords);
+    if (safeRecords.length > 0) {
+      setSelectedAssessment(safeRecords[0]);
     }
   }, []);
 

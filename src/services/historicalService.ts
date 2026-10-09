@@ -121,27 +121,39 @@ const MOCK_MONTHLY_DISTRIBUTION: MonthlyDistribution[] = [
 export const historicalService = {
   async getEvents(): Promise<HistoricalLandslideEvent[]> {
     try {
-      const response = await apiClient.get<HistoricalLandslideEvent[]>('/historical-events');
-      return response.data;
-    } catch (error) {
+      const response = await apiClient.get<unknown>('/historical-events');
+      if (Array.isArray(response.data)) {
+        return response.data as HistoricalLandslideEvent[];
+      }
+      if (response.data && typeof response.data === 'object' && Array.isArray((response.data as Record<string, unknown>).events)) {
+        return (response.data as Record<string, unknown>).events as HistoricalLandslideEvent[];
+      }
+      return MOCK_EVENTS;
+    } catch {
       return MOCK_EVENTS;
     }
   },
 
   async getYearlyTrends(): Promise<YearlyTrend[]> {
     try {
-      const response = await apiClient.get<YearlyTrend[]>('/historical-trends');
-      return response.data;
-    } catch (error) {
+      const response = await apiClient.get<unknown>('/historical-trends');
+      if (Array.isArray(response.data)) {
+        return response.data as YearlyTrend[];
+      }
+      return MOCK_YEARLY_TRENDS;
+    } catch {
       return MOCK_YEARLY_TRENDS;
     }
   },
 
   async getMonthlyDistribution(): Promise<MonthlyDistribution[]> {
     try {
-      const response = await apiClient.get<MonthlyDistribution[]>('/monthly-distribution');
-      return response.data;
-    } catch (error) {
+      const response = await apiClient.get<unknown>('/monthly-distribution');
+      if (Array.isArray(response.data)) {
+        return response.data as MonthlyDistribution[];
+      }
+      return MOCK_MONTHLY_DISTRIBUTION;
+    } catch {
       return MOCK_MONTHLY_DISTRIBUTION;
     }
   }

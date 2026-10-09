@@ -47,20 +47,23 @@ export const DashboardPage: React.FC = () => {
     setAssessments(damageAssessmentService.getAllAssessments());
   }, []);
 
-  // Compute 4 Essential Summary Cards based on actual data
-  const assessmentsAwaitingReview = assessments.filter(
-    (a) => a.verificationStatus === 'PENDING_REVIEW'
+  // Compute 4 Essential Summary Cards safely based on actual data
+  const safeAssessments = Array.isArray(assessments) ? assessments : [];
+  const safeAlerts = Array.isArray(alerts) ? alerts : [];
+
+  const assessmentsAwaitingReview = safeAssessments.filter(
+    (a) => a?.verificationStatus === 'PENDING_REVIEW'
   ).length;
 
-  const highPriorityLocations = assessments.filter(
-    (a) => a.priorityTier === 'P1_URGENT' || a.priorityTier === 'P2_HIGH'
+  const highPriorityLocations = safeAssessments.filter(
+    (a) => a?.priorityTier === 'P1_URGENT' || a?.priorityTier === 'P2_HIGH'
   ).length;
 
-  const humanVerifiedAssessments = assessments.filter(
-    (a) => a.verificationStatus === 'VERIFIED_CONFIRMED'
+  const humanVerifiedAssessments = safeAssessments.filter(
+    (a) => a?.verificationStatus === 'VERIFIED_CONFIRMED'
   ).length;
 
-  const openIncidents = alerts.filter((a) => a.status === 'ACTIVE').length;
+  const openIncidents = safeAlerts.filter((a) => a?.status === 'ACTIVE').length;
 
   const handleAssessmentCompleted = (newRec: DamageAssessmentRecord) => {
     setAssessments(damageAssessmentService.getAllAssessments());
@@ -271,7 +274,7 @@ export const DashboardPage: React.FC = () => {
 
           {/* Quick Queue List */}
           <div className="space-y-2.5 overflow-y-auto max-h-[460px] pr-1">
-            {assessments.slice(0, 5).map((asmt) => (
+            {safeAssessments.slice(0, 5).map((asmt) => (
               <div
                 key={asmt.id}
                 onClick={() => navigate('/damage-assessment')}
