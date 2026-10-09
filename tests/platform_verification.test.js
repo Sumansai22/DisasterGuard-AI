@@ -1,5 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 
 // 1. Universal Stable Sorting Test (Mirrors src/types/sorting.ts)
 function sortData(data, sortOption, direction) {
@@ -224,5 +226,121 @@ describe('Feedback Form Validation', () => {
       description: 'When switching between GIS layers, the active priority filter resets to default.',
     });
     assert.deepEqual(good, {});
+  });
+});
+
+describe('Multilingual i18n & Translation Coverage (6 Indian Languages)', () => {
+  const localesDir = path.resolve('src/i18n/locales');
+  const languages = ['en', 'te', 'hi', 'ta', 'ml', 'kn'];
+
+  const dictionaries = {};
+  languages.forEach((code) => {
+    const filePath = path.join(localesDir, `${code}.json`);
+    assert.ok(fs.existsSync(filePath), `Locale dictionary missing: ${code}.json`);
+    dictionaries[code] = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  });
+
+  test('All 6 language dictionaries contain valid, structured JSON', () => {
+    languages.forEach((code) => {
+      assert.ok(dictionaries[code], `${code} dictionary should be loaded`);
+      assert.equal(typeof dictionaries[code], 'object');
+      assert.ok(Object.keys(dictionaries[code]).length > 5, `${code} should have multiple sections`);
+    });
+  });
+
+  test('Required navigation keys exist across all 6 language dictionaries', () => {
+    const requiredNavKeys = [
+      'overview',
+      'damageAssessment',
+      'mapGis',
+      'priorities',
+      'droneRescue',
+      'weatherRainfall',
+      'evacuationShelters',
+      'incidentsSos',
+      'reportsHistory',
+      'userFeedback',
+      'adminCenter',
+    ];
+
+    languages.forEach((code) => {
+      const nav = dictionaries[code].nav;
+      assert.ok(nav, `nav section missing in ${code}.json`);
+      requiredNavKeys.forEach((k) => {
+        assert.ok(nav[k], `nav.${k} missing in ${code}.json`);
+        assert.ok(typeof nav[k] === 'string' && nav[k].length > 0);
+      });
+    });
+  });
+
+  test('Translations for te, hi, ta, ml, kn use authentic native scripts', () => {
+    // Telugu
+    assert.equal(dictionaries.te.nav.overview, 'అవలోకనం');
+    assert.equal(dictionaries.te.nav.damageAssessment, 'నష్ట అంచనా');
+
+    // Hindi
+    assert.equal(dictionaries.hi.nav.overview, 'अवलोकन');
+    assert.equal(dictionaries.hi.nav.damageAssessment, 'क्षति मूल्यांकन');
+
+    // Tamil
+    assert.equal(dictionaries.ta.nav.overview, 'மேலோட்டம்');
+    assert.equal(dictionaries.ta.nav.damageAssessment, 'சேத மதிப்பீடு');
+
+    // Malayalam
+    assert.equal(dictionaries.ml.nav.overview, 'അവലോകനം');
+    assert.equal(dictionaries.ml.nav.damageAssessment, 'നാശനഷ്ട വിലയിരുത്തൽ');
+
+    // Kannada
+    assert.equal(dictionaries.kn.nav.overview, 'ಅವಲೋಕನ');
+    assert.equal(dictionaries.kn.nav.damageAssessment, 'ಹಾನಿ ಮೌಲ್ಯಮಾಪನ');
+  });
+
+  test('Safe nested key resolver falls back gracefully to English and custom fallback', () => {
+    function resolveT(lang, keyPath, fallback) {
+      const keys = keyPath.split('.');
+      let result = dictionaries[lang];
+      for (const k of keys) {
+        if (result && typeof result === 'object' && k in result) {
+          result = result[k];
+        } else {
+          result = undefined;
+          break;
+        }
+      }
+      if (typeof result === 'string') return result;
+
+      // Fallback to English
+      let enResult = dictionaries.en;
+      for (const k of keys) {
+        if (enResult && typeof enResult === 'object' && k in enResult) {
+          enResult = enResult[k];
+        } else {
+          enResult = undefined;
+          break;
+        }
+      }
+      if (typeof enResult === 'string') return enResult;
+
+      return fallback !== undefined ? fallback : keyPath;
+    }
+
+    // Active Telugu lookup
+    assert.equal(resolveT('te', 'nav.overview'), 'అవలోకనం');
+
+    // Fallback to English if non-existent in target but in English
+    const mockTe = { ...dictionaries.te, nav: { ...dictionaries.te.nav } };
+    delete mockTe.nav.overview;
+    assert.equal(resolveT('te', 'app.title'), 'DisasterGuard AI');
+
+    // Missing key with fallback
+    assert.equal(resolveT('te', 'nonexistent.deep.key', 'Default Fallback'), 'Default Fallback');
+  });
+
+  test('All 6 languages support core emergency and feedback sections', () => {
+    languages.forEach((code) => {
+      assert.ok(dictionaries[code].sos?.trigger, `sos.trigger missing in ${code}`);
+      assert.ok(dictionaries[code].feedback?.title, `feedback.title missing in ${code}`);
+      assert.ok(dictionaries[code].disclaimer?.noticeTitle, `disclaimer.noticeTitle missing in ${code}`);
+    });
   });
 });

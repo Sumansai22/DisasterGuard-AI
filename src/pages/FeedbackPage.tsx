@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   MessageSquarePlus,
   Star,
@@ -19,11 +19,14 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useFeedback } from '../context/FeedbackContext';
+import { useTranslation } from '../i18n';
 import {
   feedbackService,
   FeedbackType,
   UserFeedbackSubmission,
 } from '../services/feedbackService';
+import { SortOption, SortDirection, sortData } from '../types/sorting';
+import { SortingToolbar } from '../components/common/SortingToolbar';
 
 const FEEDBACK_TYPES: { type: FeedbackType; label: string; icon: any; color: string; bg: string }[] = [
   {
@@ -69,9 +72,41 @@ const PLATFORM_FEATURES = [
   'Language Localization & UI Accessibility',
 ];
 
+const FEEDBACK_SORT_OPTIONS: SortOption<UserFeedbackSubmission>[] = [
+  {
+    key: 'date',
+    label: 'Submission Date',
+    directionLabels: { desc: 'Newest First', asc: 'Oldest First' },
+    getValue: (item) => item.submittedAt,
+    defaultDirection: 'desc',
+  },
+  {
+    key: 'rating',
+    label: 'Star Rating',
+    directionLabels: { desc: 'Highest Rating (5★ → 1★)', asc: 'Lowest Rating (1★ → 5★)' },
+    getValue: (item) => item.rating,
+    defaultDirection: 'desc',
+  },
+  {
+    key: 'type',
+    label: 'Feedback Type',
+    directionLabels: { asc: 'Type A–Z', desc: 'Type Z–A' },
+    getValue: (item) => item.type,
+    defaultDirection: 'asc',
+  },
+  {
+    key: 'subject',
+    label: 'Subject Name',
+    directionLabels: { asc: 'Subject A–Z', desc: 'Subject Z–A' },
+    getValue: (item) => item.subject,
+    defaultDirection: 'asc',
+  },
+];
+
 export const FeedbackPage: React.FC = () => {
   const { currentUser } = useAuth();
   const { showSuccess, showError, showWarning } = useFeedback();
+  const { t } = useTranslation();
 
   const [type, setType] = useState<FeedbackType>('GENERAL_FEEDBACK');
   const [rating, setRating] = useState<number>(5);
@@ -85,9 +120,19 @@ export const FeedbackPage: React.FC = () => {
   const [submissions, setSubmissions] = useState<UserFeedbackSubmission[]>([]);
   const [integrationNotice, setIntegrationNotice] = useState<string | null>(null);
 
+  const [activeSortKey, setActiveSortKey] = useState<string>('date');
+  const [activeDirection, setActiveDirection] = useState<SortDirection>('desc');
+
   useEffect(() => {
     setSubmissions(feedbackService.getLocalSubmissions());
   }, []);
+
+  const sortedSubmissions = useMemo(() => {
+    const activeOption =
+      FEEDBACK_SORT_OPTIONS.find((opt) => opt.key === activeSortKey) ||
+      FEEDBACK_SORT_OPTIONS[0];
+    return sortData(submissions, activeOption, activeDirection);
+  }, [submissions, activeSortKey, activeDirection]);
 
   const validateForm = (): boolean => {
     const errors: { subject?: string; description?: string } = {};
@@ -178,14 +223,14 @@ export const FeedbackPage: React.FC = () => {
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
-                  User Feedback & Platform Diagnostics
+                  {t('feedback.title', 'User Feedback & Experience Center')}
                 </h1>
                 <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-orange-50 text-orange-700 border border-orange-200">
                   PS-53 Quality Assurance
                 </span>
               </div>
               <p className="text-xs md:text-sm text-slate-500 mt-1">
-                Submit usability feedback, report software bugs, or propose operational features to improve disaster response efficiency.
+                {t('feedback.subtitle', 'Submit usability feedback, report software bugs, or propose operational features to improve disaster response efficiency.')}
               </p>
             </div>
           </div>
@@ -206,7 +251,7 @@ export const FeedbackPage: React.FC = () => {
         <div>
           <strong className="font-bold">Life-Threatening Emergency Notice: </strong>
           This feedback form is strictly for software improvements and bug tracking. Do not use this form to report active disaster distress.
-          For immediate rescue, trigger the top bar <strong className="text-red-700">EMERGENCY SOS</strong> button or dial national dispatch hotlines (<strong>112 / 1078</strong>).
+          For immediate rescue, trigger the top bar <strong className="text-red-700">{t('sos.trigger', 'EMERGENCY SOS')}</strong> button or dial national dispatch hotlines (<strong>112 / 1078</strong>).
         </div>
       </div>
 
@@ -218,7 +263,7 @@ export const FeedbackPage: React.FC = () => {
             {/* Feedback Type Selection */}
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                1. Feedback Category <span className="text-red-500">*</span>
+                1. {t('feedback.category', 'Feedback Category')} <span className="text-red-500">*</span>
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {FEEDBACK_TYPES.map((item) => {
@@ -298,14 +343,14 @@ export const FeedbackPage: React.FC = () => {
             <div>
               <div className="flex justify-between items-center mb-1">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                  4. Subject Summary <span className="text-red-500">*</span>
+                  4. {t('feedback.subject', 'Subject')} <span className="text-red-500">*</span>
                 </label>
                 <span className="text-[11px] text-slate-400 font-mono">{subject.length}/100</span>
               </div>
               <input
                 type="text"
                 maxLength={100}
-                placeholder="e.g. Priority sorting resets after applying rainfall threshold filter..."
+                placeholder={t('feedback.subjectPlaceholder', 'Short summary of your feedback...')}
                 value={subject}
                 onChange={(e) => {
                   setSubject(e.target.value);
@@ -326,14 +371,14 @@ export const FeedbackPage: React.FC = () => {
             <div>
               <div className="flex justify-between items-center mb-1">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                  5. Detailed Description & Reproduction Steps <span className="text-red-500">*</span>
+                  5. {t('feedback.description', 'Detailed Description')} <span className="text-red-500">*</span>
                 </label>
                 <span className="text-[11px] text-slate-400 font-mono">{description.length}/500</span>
               </div>
               <textarea
                 rows={4}
                 maxLength={500}
-                placeholder="Describe what occurred, expected outcome, device/browser details, and suggestions..."
+                placeholder={t('feedback.descriptionPlaceholder', 'Explain what happened, expected behavior, or your recommendation...')}
                 value={description}
                 onChange={(e) => {
                   setDescription(e.target.value);
@@ -359,7 +404,7 @@ export const FeedbackPage: React.FC = () => {
                 className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors flex items-center gap-1.5 cursor-pointer"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span>Reset</span>
+                <span>{t('common.cancel', 'Reset')}</span>
               </button>
 
               <button
@@ -370,12 +415,12 @@ export const FeedbackPage: React.FC = () => {
                 {isSubmitting ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Submitting...</span>
+                    <span>{t('feedback.submitting', 'Submitting...')}</span>
                   </>
                 ) : (
                   <>
                     <Send className="w-3.5 h-3.5" />
-                    <span>Submit Feedback</span>
+                    <span>{t('feedback.submit', 'Submit Feedback')}</span>
                   </>
                 )}
               </button>
@@ -404,12 +449,12 @@ export const FeedbackPage: React.FC = () => {
           </div>
 
           {/* Submission History */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-slate-500" />
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">
-                  Recent Submissions ({submissions.length})
+                  {t('feedback.recentSubmissions', 'Recent Submissions')} ({submissions.length})
                 </h3>
               </div>
               {submissions.length > 0 && (
@@ -425,6 +470,22 @@ export const FeedbackPage: React.FC = () => {
               )}
             </div>
 
+            {submissions.length > 1 && (
+              <SortingToolbar
+                sortOptions={FEEDBACK_SORT_OPTIONS}
+                activeSortKey={activeSortKey}
+                activeDirection={activeDirection}
+                onSortChange={(key, dir) => {
+                  setActiveSortKey(key);
+                  setActiveDirection(dir);
+                }}
+                defaultSortKey="date"
+                defaultDirection="desc"
+                totalCount={submissions.length}
+                className="bg-slate-50 border border-slate-200/80 rounded-xl p-2"
+              />
+            )}
+
             {submissions.length === 0 ? (
               <div className="text-center py-8 text-slate-400 space-y-1">
                 <MessageSquarePlus className="w-8 h-8 mx-auto text-slate-300" />
@@ -433,7 +494,7 @@ export const FeedbackPage: React.FC = () => {
               </div>
             ) : (
               <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
-                {submissions.map((sub) => (
+                {sortedSubmissions.map((sub) => (
                   <div
                     key={sub.id}
                     className="p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white transition-colors space-y-2 text-xs"

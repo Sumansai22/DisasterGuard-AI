@@ -6,6 +6,8 @@ import { XAIBreakdown } from '../components/prediction/XAIBreakdown';
 import { CreateAlertModal } from '../components/alerts/CreateAlertModal';
 import { useAlerts } from '../hooks/useAlerts';
 import { BrainCircuit, ShieldCheck, History } from 'lucide-react';
+import { useFeedback } from '../context/FeedbackContext';
+import { useTranslation } from '../i18n';
 import { PredictionFormValues } from '../types/prediction';
 
 export const PredictionPage: React.FC = () => {
@@ -19,11 +21,18 @@ export const PredictionPage: React.FC = () => {
   } = usePrediction();
 
   const { addAlert } = useAlerts();
+  const { showSuccess, showError } = useFeedback();
+  const { t } = useTranslation();
   const [alertModalOpen, setAlertModalOpen] = useState(false);
 
   const handleSubmit = async (values: PredictionFormValues) => {
     setFormValues(values);
-    await runPrediction(values);
+    const res = await runPrediction(values);
+    if (res) {
+      showSuccess(`AI prediction completed: Risk Score ${res.risk_score}/100 (${res.risk_level})`);
+    } else {
+      showError('Prediction computation failed. Retaining entered feature values.');
+    }
   };
 
   return (

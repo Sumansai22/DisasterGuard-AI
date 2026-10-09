@@ -31,9 +31,11 @@ import { AssignTeamModal } from '../components/damage/AssignTeamModal';
 import { DamageReportModal } from '../components/damage/DamageReportModal';
 import { DamageAssessmentWizard } from '../components/damage/DamageAssessmentWizard';
 import { RiskMap } from '../components/map/RiskMap';
+import { useTranslation } from '../i18n';
 
 export const DamageAssessmentPage: React.FC = () => {
   const { setMapCenter, setMapZoom } = useApp();
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const [assessments, setAssessments] = useState<DamageAssessmentRecord[]>([]);
   const [selectedAssessment, setSelectedAssessment] = useState<DamageAssessmentRecord | null>(null);
@@ -120,11 +122,11 @@ export const DamageAssessmentPage: React.FC = () => {
               EMS-98 & FEMA STANDARDS
             </span>
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              Disaster Damage Prioritization System
+              {t('damage.title', 'Disaster Damage Prioritization System')}
             </h1>
           </div>
           <p className="text-xs sm:text-sm text-slate-500">
-            Combine satellite, UAV, and historical imagery to estimate structural damage and rank urgent physical inspection priorities.
+            {t('damage.subtitle', 'Combine satellite, UAV, and historical imagery to estimate structural damage and rank urgent physical inspection priorities.')}
           </p>
         </div>
 
@@ -136,22 +138,22 @@ export const DamageAssessmentPage: React.FC = () => {
             title="Open 7-step guided damage assessment wizard"
           >
             <Sparkles className="w-4 h-4 text-orange-200" />
-            <span>Start Guided Wizard</span>
+            <span>{t('damage.newAssessment', 'Start Guided Wizard')}</span>
           </button>
           <button
             onClick={() => setShowUploadModal(true)}
             className="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-800 bg-white hover:bg-slate-50 border border-slate-300 shadow-2xs flex items-center gap-1.5 transition-colors cursor-pointer"
           >
             <Upload className="w-4 h-4 text-slate-600" />
-            <span>Upload Imagery</span>
+            <span>{t('common.actions', 'Upload Imagery')}</span>
           </button>
           <button
             onClick={() => setShowReportModal(true)}
-            className="px-3 py-2 rounded-xl text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white flex items-center gap-1.5 border border-slate-700 shadow-sm transition-all"
+            className="px-3 py-2 rounded-xl text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white flex items-center gap-1.5 border border-slate-700 shadow-sm transition-all cursor-pointer"
             title="Generate Official NDMA Inspection Report"
           >
             <FileText className="w-4 h-4" />
-            <span>Official Report</span>
+            <span>{t('common.exportReport', 'Official Report')}</span>
           </button>
         </div>
       </div>

@@ -70,37 +70,37 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const navGroups: NavGroup[] = [
     {
-      groupName: 'Main',
+      groupName: t('nav.groupMain', 'Main'),
       items: [
-        { name: 'Overview', path: '/', icon: LayoutDashboard },
-        { name: 'Damage Assessment', path: '/damage-assessment', icon: Building2, badge: 'PS-53' },
-        { name: 'Map & GIS', path: '/risk-map', icon: MapPin },
-        { name: 'Inspection Priorities', path: '/damage-assessment?tab=queue', icon: Compass },
+        { name: t('nav.overview', 'Overview'), path: '/', icon: LayoutDashboard },
+        { name: t('nav.damageAssessment', 'Damage Assessment'), path: '/damage-assessment', icon: Building2, badge: 'PS-53' },
+        { name: t('nav.mapGis', 'Map & GIS'), path: '/risk-map', icon: MapPin },
+        { name: t('nav.priorities', 'Inspection Priorities'), path: '/damage-assessment?tab=queue', icon: Compass },
       ],
     },
     {
-      groupName: 'Response Operations',
+      groupName: t('nav.groupResponse', 'Response Operations'),
       items: [
-        { name: 'Drone & Rescue', path: '/drone-rescue', icon: Crosshair },
-        { name: 'Weather & Rainfall', path: '/rainfall', icon: CloudRain },
-        { name: 'Evacuation & Shelters', path: '/evacuation', icon: Navigation },
-        { name: 'Incidents & SOS', path: '/alerts', icon: Radio, badgeCount: 4 },
+        { name: t('nav.droneRescue', 'Drone & Rescue'), path: '/drone-rescue', icon: Crosshair },
+        { name: t('nav.weatherRainfall', 'Weather & Rainfall'), path: '/rainfall', icon: CloudRain },
+        { name: t('nav.evacuationShelters', 'Evacuation & Shelters'), path: '/evacuation', icon: Navigation },
+        { name: t('nav.incidentsSos', 'Incidents & SOS'), path: '/alerts', icon: Radio, badgeCount: 4 },
       ],
     },
     {
-      groupName: 'Records',
+      groupName: t('nav.groupRecords', 'Records'),
       items: [
-        { name: 'Reports & History', path: '/historical', icon: History },
-        { name: 'User Feedback', path: '/feedback', icon: MessageSquarePlus },
+        { name: t('nav.reportsHistory', 'Reports & History'), path: '/historical', icon: History },
+        { name: t('nav.userFeedback', 'User Feedback'), path: '/feedback', icon: MessageSquarePlus },
       ],
     },
     ...(currentUser.role === 'ADMIN'
       ? [
           {
-            groupName: 'Administration',
+            groupName: t('nav.groupAdmin', 'Administration'),
             items: [
-              { name: 'Admin Center', path: '/admin', icon: ShieldCheck, badge: 'ROOT' },
-              { name: 'Settings', path: '/admin?tab=config', icon: Sliders },
+              { name: t('nav.adminCenter', 'Admin Center'), path: '/admin', icon: ShieldCheck, badge: 'ROOT' },
+              { name: t('nav.settings', 'Settings'), path: '/admin?tab=config', icon: Sliders },
             ],
           },
         ]

@@ -28,6 +28,8 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { usePrediction } from '../context/PredictionContext';
+import { useFeedback } from '../context/FeedbackContext';
+import { useTranslation } from '../i18n';
 
 const DEFAULT_COMMAND_STATS: CommandSummaryStats = {
   active_incidents: 12,
@@ -50,6 +52,8 @@ export const RiskMapPage: React.FC = () => {
     setMapCenter,
   } = useApp();
   const { setFormValues } = usePrediction();
+  const { showInfo } = useFeedback();
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const [filterRisk, setFilterRisk] = useState<string>('ALL');
@@ -119,6 +123,7 @@ export const RiskMapPage: React.FC = () => {
 
   const handleStationClick = (station: MonitoringStation) => {
     selectTelemetryStation(station);
+    showInfo(`GIS View centered on ${station.name} (${station.riskLevel})`);
   };
 
   const handleRunPrediction = (station: MonitoringStation) => {

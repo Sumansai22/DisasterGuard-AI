@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useAuth, PRESET_PERSONAS } from '../../context/AuthContext';
 import { useFeedback } from '../../context/FeedbackContext';
+import { useTranslation } from '../../i18n';
 import { UserRole } from '../../types/auth';
 
 interface RoleSwitcherModalProps {
@@ -21,6 +22,7 @@ interface RoleSwitcherModalProps {
 export const RoleSwitcherModal: React.FC<RoleSwitcherModalProps> = ({ isOpen, onClose }) => {
   const { currentUser, switchPersona } = useAuth();
   const { showSuccess } = useFeedback();
+  const { t } = useTranslation();
 
   if (!isOpen) return null;
 
@@ -87,10 +89,10 @@ export const RoleSwitcherModal: React.FC<RoleSwitcherModalProps> = ({ isOpen, on
             </div>
             <div>
               <h2 className="text-base font-bold text-white leading-tight">
-                Role-Based Access Control (RBAC) Switcher
+                {t('roles.switchPersona', 'Role-Based Access Control (RBAC) Switcher')}
               </h2>
               <p className="text-xs text-slate-400">
-                Switch active persona to experience role-specific platform workspaces
+                {t('roles.currentPersona', 'Switch active persona to experience role-specific platform workspaces')}
               </p>
             </div>
           </div>
