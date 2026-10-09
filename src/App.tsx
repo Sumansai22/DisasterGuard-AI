@@ -19,6 +19,7 @@ import { AlertsPage } from './pages/Alerts';
 import { HistoricalPage } from './pages/Historical';
 import { AnalyticsPage } from './pages/Analytics';
 import { AdminPage } from './pages/Admin';
+import { SettingsPage } from './pages/SettingsPage';
 import { FeedbackPage } from './pages/FeedbackPage';
 import { MissionControlPage } from './pages/MissionControl';
 import { DamageAssessmentPage } from './pages/DamageAssessmentPage';
@@ -52,6 +53,7 @@ export const App: React.FC = () => {
                     <Route path="land-scan" element={<Navigate to="/ai-land-scan" replace />} />
                     <Route path="rainfall" element={<RainfallPage />} />
                     <Route path="damage-assessment" element={<DamageAssessmentPage />} />
+                    <Route path="priorities" element={<DamageAssessmentPage />} />
                     <Route path="prioritization" element={<Navigate to="/damage-assessment" replace />} />
                     <Route path="damage-prioritization" element={<Navigate to="/damage-assessment" replace />} />
                     <Route path="inspector-workspace" element={<FieldInspectorPage />} />
@@ -65,6 +67,7 @@ export const App: React.FC = () => {
                     <Route path="feedback" element={<FeedbackPage />} />
                     <Route path="analytics" element={<AnalyticsPage />} />
                     <Route path="admin" element={<AdminPage />} />
+                    <Route path="settings" element={<SettingsPage />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Route>
                 </Routes>
