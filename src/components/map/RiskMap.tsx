@@ -347,6 +347,17 @@ export const RiskMap: React.FC<RiskMapProps> = ({
     setDamageAssessments(damageAssessmentService.getAllAssessments());
   }, []);
 
+  const safeStations = Array.isArray(stations) ? stations : MONITORED_STATIONS;
+  const safeRiskZones = Array.isArray(riskZones) ? riskZones : RISK_ZONES;
+  const safeSafeZones = Array.isArray(safeZones) ? safeZones : SAFE_ZONES;
+  const safeIncidents = Array.isArray(incidents) ? incidents : [];
+  const safeRainfallStations = Array.isArray(rainfallStations) ? rainfallStations : [];
+  const safeWaterBodies = Array.isArray(waterBodies) ? waterBodies : [];
+  const safeEmergencyInfrastructure = Array.isArray(emergencyInfrastructure) ? emergencyInfrastructure : [];
+  const safeCriticalInfrastructure = Array.isArray(criticalInfrastructure) ? criticalInfrastructure : [];
+  const safeSensors = Array.isArray(sensors) ? sensors : [];
+  const safeVulnerabilityZones = Array.isArray(vulnerabilityZones) ? vulnerabilityZones : [];
+
   const activeCenter = center || mapCenter;
   const activeZoom = zoom || mapZoom;
 
@@ -443,7 +454,7 @@ export const RiskMap: React.FC<RiskMapProps> = ({
 
         {/* 1. HAZARDS: Landslide Risk Polygons */}
         {localLayers.hazards.landslideRisk &&
-          riskZones.map((zone) => {
+          safeRiskZones.map((zone) => {
             const color = getRiskColor(zone.riskLevel);
             return (
               <Polygon
@@ -480,7 +491,7 @@ export const RiskMap: React.FC<RiskMapProps> = ({
 
         {/* 1. HAZARDS: Active Disaster Incidents */}
         {localLayers.hazards.activeIncidents &&
-          incidents.map((inc) => (
+          safeIncidents.map((inc) => (
             <Marker
               key={inc.id}
               position={[inc.latitude, inc.longitude]}
@@ -494,7 +505,7 @@ export const RiskMap: React.FC<RiskMapProps> = ({
 
         {/* 2. WEATHER: Live Rainfall Stations */}
         {localLayers.weather.rainfall &&
-          rainfallStations.map((rainStn) => (
+          safeRainfallStations.map((rainStn) => (
             <Marker
               key={rainStn.id}
               position={[rainStn.latitude, rainStn.longitude]}
@@ -508,7 +519,7 @@ export const RiskMap: React.FC<RiskMapProps> = ({
 
         {/* 3. WATER: Rivers & Reservoirs */}
         {localLayers.water.rivers &&
-          waterBodies.map((wb) => (
+          safeWaterBodies.map((wb) => (
             <React.Fragment key={wb.id}>
               {wb.poly_line && (
                 <Polyline
@@ -533,7 +544,7 @@ export const RiskMap: React.FC<RiskMapProps> = ({
 
         {/* 4. EMERGENCY: Safe Relief Shelters */}
         {localLayers.emergency.emergencyShelters &&
-          safeZones.map((sz) => (
+          safeSafeZones.map((sz) => (
             <Marker
               key={sz.id}
               position={[sz.location.lat, sz.location.lng]}
@@ -574,7 +585,7 @@ export const RiskMap: React.FC<RiskMapProps> = ({
           localLayers.emergency.fireStations ||
           localLayers.emergency.policeStations ||
           localLayers.emergency.eoc) &&
-          emergencyInfrastructure
+          safeEmergencyInfrastructure
             .filter((item) => {
               if (item.type === 'HOSPITAL' && localLayers.emergency.hospitals) return true;
               if (item.type === 'AMBULANCE_STATION' && localLayers.emergency.ambulanceStations) return true;
@@ -597,7 +608,7 @@ export const RiskMap: React.FC<RiskMapProps> = ({
 
         {/* 5. INFRASTRUCTURE: Roads, Bridges, Tunnels, Power, Telecom */}
         {Object.values(localLayers.infrastructure).some(Boolean) &&
-          criticalInfrastructure
+          safeCriticalInfrastructure
             .filter((item) => {
               if (item.type === 'ROADS' && localLayers.infrastructure.roads) return true;
               if (item.type === 'BRIDGES' && localLayers.infrastructure.bridges) return true;
@@ -622,7 +633,7 @@ export const RiskMap: React.FC<RiskMapProps> = ({
 
         {/* 6. SENSORS: Multi-parameter IoT Nodes */}
         {Object.values(localLayers.sensors).some(Boolean) &&
-          sensors
+          safeSensors
             .filter((s) => {
               if (s.sensor_type === 'RAIN_GAUGE' && localLayers.sensors.rainfallSensors) return true;
               if (s.sensor_type === 'SOIL_MOISTURE' && localLayers.sensors.soilMoistureSensors) return true;
@@ -682,7 +693,7 @@ export const RiskMap: React.FC<RiskMapProps> = ({
 
         {/* 8. POPULATION VULNERABILITY ZONES */}
         {localLayers.vulnerability.populationZones &&
-          vulnerabilityZones.map((vz) => (
+          safeVulnerabilityZones.map((vz) => (
             <Circle
               key={vz.id}
               center={[vz.latitude, vz.longitude]}
@@ -713,7 +724,7 @@ export const RiskMap: React.FC<RiskMapProps> = ({
           ))}
 
         {/* 9. Core Monitoring Stations */}
-        {stations.map((stn) => (
+        {safeStations.map((stn) => (
           <Marker
             key={stn.id}
             position={[stn.coordinates.lat, stn.coordinates.lng]}

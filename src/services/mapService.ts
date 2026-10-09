@@ -79,10 +79,21 @@ export const mapService = {
     radiusKm: number = 120
   ): Promise<DisasterMapContextResponse> {
     try {
-      const response = await apiClient.get<DisasterMapContextResponse>(
+      const response = await apiClient.get<unknown>(
         `/disaster-map/context?latitude=${latitude}&longitude=${longitude}&radius_km=${radiusKm}`
       );
-      return response.data;
+      if (
+        response.data &&
+        typeof response.data === 'object' &&
+        !Array.isArray(response.data) &&
+        'summary' in (response.data as Record<string, unknown>) &&
+        (response.data as Record<string, unknown>).summary &&
+        typeof (response.data as Record<string, unknown>).summary === 'object'
+      ) {
+        return response.data as DisasterMapContextResponse;
+      }
+      console.warn('Backend disaster map API payload missing valid summary, using resilient fallback');
+      return this.getLocalDisasterContext(latitude, longitude, radiusKm);
     } catch (err) {
       console.warn('Backend disaster map API unavailable, generating local context', err);
       return this.getLocalDisasterContext(latitude, longitude, radiusKm);

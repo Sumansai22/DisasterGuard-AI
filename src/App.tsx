@@ -24,6 +24,8 @@ import { DamageAssessmentPage } from './pages/DamageAssessmentPage';
 import { FieldInspectorPage } from './pages/FieldInspectorPage';
 import { UserPortalPage } from './pages/UserPortalPage';
 import { DemoTourProvider } from './context/DemoTourContext';
+import { FeedbackProvider } from './context/FeedbackContext';
+import { FeedbackToastContainer } from './components/common/FeedbackToastContainer';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 export const App: React.FC = () => {
@@ -32,10 +34,12 @@ export const App: React.FC = () => {
       <LanguageProvider>
         <AppProvider>
           <AuthProvider>
-            <PredictionProvider>
-              <BrowserRouter>
-                <DemoTourProvider>
-                  <Routes>
+            <FeedbackProvider>
+              <PredictionProvider>
+                <BrowserRouter>
+                  <DemoTourProvider>
+                    <FeedbackToastContainer />
+                    <Routes>
                   <Route path="/" element={<AppLayout />}>
                     <Route index element={<DashboardPage />} />
                     <Route path="mission-control" element={<MissionControlPage />} />
@@ -65,8 +69,9 @@ export const App: React.FC = () => {
               </DemoTourProvider>
             </BrowserRouter>
           </PredictionProvider>
-        </AuthProvider>
-      </AppProvider>
+        </FeedbackProvider>
+      </AuthProvider>
+    </AppProvider>
     </LanguageProvider>
   </ErrorBoundary>
   );

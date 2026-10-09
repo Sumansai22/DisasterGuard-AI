@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { DamageAssessmentRecord, AssignedRescueTeam } from '../../types/damageAssessment';
 import { damageAssessmentService } from '../../services/damageAssessmentService';
+import { useFeedback } from '../../context/FeedbackContext';
 
 interface AssignTeamModalProps {
   isOpen: boolean;
@@ -59,6 +60,7 @@ export const AssignTeamModal: React.FC<AssignTeamModalProps> = ({
   assessment,
   onAssigned,
 }) => {
+  const { showSuccess } = useFeedback();
   const [selectedTeam, setSelectedTeam] = useState<Omit<AssignedRescueTeam, 'assignedAt'>>(PRESET_TEAMS[0]);
   const [customEta, setCustomEta] = useState<number>(selectedTeam.etaMinutes);
 
@@ -74,6 +76,7 @@ export const AssignTeamModal: React.FC<AssignTeamModalProps> = ({
 
     const updated = damageAssessmentService.assignRescueTeam(assessment.id, team);
     if (updated) {
+      showSuccess(`Inspection team ${team.teamName} dispatched (ETA ~${team.etaMinutes}m).`);
       onAssigned(updated);
       onClose();
     }

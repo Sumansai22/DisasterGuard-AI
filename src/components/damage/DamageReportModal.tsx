@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { DamageAssessmentRecord } from '../../types/damageAssessment';
 import { damageAssessmentService } from '../../services/damageAssessmentService';
+import { useFeedback } from '../../context/FeedbackContext';
 
 interface DamageReportModalProps {
   isOpen: boolean;
@@ -27,11 +28,34 @@ export const DamageReportModal: React.FC<DamageReportModalProps> = ({
   onClose,
   assessment,
 }) => {
+  const { showSuccess, showError } = useFeedback();
+
   if (!isOpen) return null;
 
   const handlePrint = () => {
-    damageAssessmentService.logReportGenerated(assessment.id, 'Officer In-Charge');
-    window.print();
+    try {
+      damageAssessmentService.logReportGenerated(assessment.id, 'Officer In-Charge');
+      showSuccess('Report document prepared for print / PDF export.');
+      window.print();
+    } catch {
+      showError('Unable to generate print dialog.');
+    }
+  };
+
+  const handleDownloadDossier = () => {
+    try {
+      damageAssessmentService.logReportGenerated(assessment.id, 'Officer In-Charge');
+      const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(assessment, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute('href', dataStr);
+      downloadAnchor.setAttribute('download', `NDMA-PS53-Report-${assessment.id}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      showSuccess('Report downloaded successfully.');
+    } catch {
+      showError('Failed to download report dossier.');
+    }
   };
 
   return (
@@ -53,6 +77,14 @@ export const DamageReportModal: React.FC<DamageReportModalProps> = ({
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={handleDownloadDossier}
+              className="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+              title="Download structured JSON report dossier"
+            >
+              <Download className="w-3.5 h-3.5 text-slate-600" />
+              <span>Download Dossier</span>
+            </button>
             <button
               onClick={handlePrint}
               className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"

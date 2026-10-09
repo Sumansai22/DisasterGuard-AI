@@ -3,6 +3,8 @@ import {
   ListFilter,
   Search,
   ArrowUpDown,
+  ArrowDownNarrowWide,
+  ArrowUpNarrowWide,
   Eye,
   ShieldCheck,
   UserCheck,
@@ -22,6 +24,9 @@ import {
   PhysicalDamageCategory,
   HumanVerificationStatus,
 } from '../../types/damageAssessment';
+import { SortOption, SortDirection, sortData } from '../../types/sorting';
+import { SortingToolbar } from '../common/SortingToolbar';
+import { useFeedback } from '../../context/FeedbackContext';
 
 interface InspectionPriorityQueueProps {
   assessments: DamageAssessmentRecord[];
@@ -33,6 +38,60 @@ interface InspectionPriorityQueueProps {
   onResetPresets: () => void;
 }
 
+const DAMAGE_RANK: Record<string, number> = {
+  DESTROYED: 4,
+  MAJOR_DAMAGE: 3,
+  MODERATE_DAMAGE: 2,
+  MINOR_DAMAGE: 1,
+  UNAFFECTED: 0,
+};
+
+const QUEUE_SORT_OPTIONS: SortOption<DamageAssessmentRecord>[] = [
+  {
+    key: 'score',
+    label: 'Priority Score',
+    directionLabels: { asc: 'Lowest Priority first', desc: 'Highest Priority first' },
+    getValue: (item) => item.scores?.compositePriorityScore ?? 0,
+    defaultDirection: 'desc',
+  },
+  {
+    key: 'date',
+    label: 'Assessment Date',
+    directionLabels: { asc: 'Oldest Assessment first', desc: 'Newest Assessment first' },
+    getValue: (item) => item.updatedAt || item.createdAt,
+    defaultDirection: 'desc',
+  },
+  {
+    key: 'location',
+    label: 'Location Name',
+    directionLabels: { asc: 'Location A–Z', desc: 'Location Z–A' },
+    getValue: (item) => item.locationName,
+    defaultDirection: 'asc',
+  },
+  {
+    key: 'verification',
+    label: 'Verification Status',
+    directionLabels: { asc: 'Unverified first', desc: 'Verified first' },
+    getValue: (item) =>
+      item.verificationStatus === 'PENDING_REVIEW' ? 0 : 1,
+    defaultDirection: 'asc',
+  },
+  {
+    key: 'damage',
+    label: 'Damage Severity',
+    directionLabels: { asc: 'Lowest Damage first', desc: 'Highest Damage first' },
+    getValue: (item) => DAMAGE_RANK[item.estimatedDamageCategory] ?? 0,
+    defaultDirection: 'desc',
+  },
+  {
+    key: 'uncertainty',
+    label: 'AI Uncertainty',
+    directionLabels: { asc: 'Lowest Uncertainty first', desc: 'Highest Uncertainty first' },
+    getValue: (item) => item.scores?.uncertaintyScore ?? 0,
+    defaultDirection: 'desc',
+  },
+];
+
 export const InspectionPriorityQueue: React.FC<InspectionPriorityQueueProps> = ({
   assessments,
   selectedAssessmentId,
@@ -42,14 +101,19 @@ export const InspectionPriorityQueue: React.FC<InspectionPriorityQueueProps> = (
   onOpenReportModal,
   onResetPresets,
 }) => {
+  const { showSuccess, showInfo } = useFeedback();
   const [searchQuery, setSearchQuery] = useState('');
   const [priorityFilter, setPriorityFilter] = useState<string>('ALL');
   const [verificationFilter, setVerificationFilter] = useState<string>('ALL');
   const [hazardFilter, setHazardFilter] = useState<string>('ALL');
-  const [sortBy, setSortBy] = useState<'score' | 'date' | 'uncertainty'>('score');
 
-  // Filter and sort
+  // Sorting state
+  const [activeSortKey, setActiveSortKey] = useState<string>('score');
+  const [activeDirection, setActiveDirection] = useState<SortDirection>('desc');
+
   const safeAssessments = Array.isArray(assessments) ? assessments : [];
+
+  // Filter
   const filtered = safeAssessments.filter((item) => {
     if (!item) return false;
     const matchesSearch =
@@ -59,21 +123,49 @@ export const InspectionPriorityQueue: React.FC<InspectionPriorityQueueProps> = (
       (item.district || '').toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesPriority = priorityFilter === 'ALL' || item.priorityTier === priorityFilter;
-    const matchesVerification = verificationFilter === 'ALL' || item.verificationStatus === verificationFilter;
+    const matchesVerification =
+      verificationFilter === 'ALL' || item.verificationStatus === verificationFilter;
     const matchesHazard = hazardFilter === 'ALL' || item.disasterType === hazardFilter;
 
     return matchesSearch && matchesPriority && matchesVerification && matchesHazard;
   });
 
-  const sorted = [...filtered].sort((a, b) => {
-    if (sortBy === 'score') {
-      return b.scores.compositePriorityScore - a.scores.compositePriorityScore;
+  // Sort using stable universal algorithm
+  const currentOption =
+    QUEUE_SORT_OPTIONS.find((opt) => opt.key === activeSortKey) || QUEUE_SORT_OPTIONS[0];
+  const sorted = sortData(filtered, currentOption, activeDirection);
+
+  const handleHeaderSortClick = (key: string) => {
+    if (activeSortKey === key) {
+      const nextDir: SortDirection = activeDirection === 'asc' ? 'desc' : 'asc';
+      setActiveDirection(nextDir);
+      const opt = QUEUE_SORT_OPTIONS.find((o) => o.key === key);
+      const label = opt?.directionLabels?.[nextDir] || nextDir;
+      showInfo(`Sorted by ${opt?.label || key} — ${label}`);
+    } else {
+      const opt = QUEUE_SORT_OPTIONS.find((o) => o.key === key);
+      const initialDir = opt?.defaultDirection || 'desc';
+      setActiveSortKey(key);
+      setActiveDirection(initialDir);
+      const label = opt?.directionLabels?.[initialDir] || initialDir;
+      showInfo(`Sorted by ${opt?.label || key} — ${label}`);
     }
-    if (sortBy === 'uncertainty') {
-      return b.scores.uncertaintyScore - a.scores.uncertaintyScore;
-    }
-    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-  });
+  };
+
+  const handleResetFilters = () => {
+    setSearchQuery('');
+    setPriorityFilter('ALL');
+    setVerificationFilter('ALL');
+    setHazardFilter('ALL');
+    setActiveSortKey('score');
+    setActiveDirection('desc');
+    showInfo('All filters and sorting reset to default.');
+  };
+
+  const handleResetPresetsWithFeedback = () => {
+    onResetPresets();
+    showSuccess('Inspection priority scenarios reset to verified baseline records.');
+  };
 
   const getPriorityBadgeStyle = (tier: InspectionPriorityTier) => {
     switch (tier) {
@@ -103,6 +195,18 @@ export const InspectionPriorityQueue: React.FC<InspectionPriorityQueueProps> = (
     }
   };
 
+  const getVerificationIcon = (status: HumanVerificationStatus) => {
+    switch (status) {
+      case 'VERIFIED_CONFIRMED':
+        return <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />;
+      case 'RE_INSPECTION_REQUESTED':
+        return <RotateCcw className="w-3.5 h-3.5 text-amber-600 shrink-0" />;
+      case 'PENDING_REVIEW':
+      default:
+        return <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />;
+    }
+  };
+
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col overflow-hidden text-xs">
       {/* Top Controls Header */}
@@ -121,247 +225,381 @@ export const InspectionPriorityQueue: React.FC<InspectionPriorityQueueProps> = (
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={onResetPresets}
-            className="self-start sm:self-auto px-2.5 py-1 text-[11px] rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600 flex items-center gap-1 transition-colors"
-            title="Restore pristine Indian disaster test scenarios"
-          >
-            <RotateCcw className="w-3 h-3" />
-            <span>Reset Scenario Presets</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleResetPresetsWithFeedback}
+              className="px-2.5 py-1 text-[11px] rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600 flex items-center gap-1 transition-colors cursor-pointer"
+              title="Restore pristine Indian disaster test scenarios"
+            >
+              <RotateCcw className="w-3 h-3" />
+              <span>Reset Scenario Presets</span>
+            </button>
+          </div>
         </div>
 
-        {/* Search & Filter Toolbar */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2">
-          {/* Search Input */}
-          <div className="relative md:col-span-2">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Search assessment ID, location, district..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 border border-slate-200 rounded-lg text-xs bg-white focus:outline-none focus:ring-2 focus:ring-orange-500/20"
-            />
-          </div>
+        {/* Sorting Toolbar */}
+        <SortingToolbar
+          sortOptions={QUEUE_SORT_OPTIONS}
+          activeSortKey={activeSortKey}
+          activeDirection={activeDirection}
+          onSortChange={(key, dir) => {
+            setActiveSortKey(key);
+            setActiveDirection(dir);
+          }}
+          defaultSortKey="score"
+          defaultDirection="desc"
+          onReset={handleResetFilters}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchPlaceholder="Search assessment ID, location, district..."
+          totalCount={safeAssessments.length}
+          filteredCount={sorted.length}
+        />
 
+        {/* Filter Badges Row */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
           {/* Priority Filter */}
-          <div>
+          <div className="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-lg border border-slate-200">
+            <ListFilter className="w-3 h-3 text-slate-400 shrink-0" />
             <select
               value={priorityFilter}
-              onChange={(e) => setPriorityFilter(e.target.value)}
-              className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs bg-white font-medium text-slate-700"
+              onChange={(e) => {
+                setPriorityFilter(e.target.value);
+                showInfo(`Priority filter: ${e.target.value}`);
+              }}
+              className="w-full bg-transparent text-xs font-medium text-slate-700 focus:outline-none cursor-pointer"
             >
-              <option value="ALL">All Priorities</option>
-              <option value="P1_URGENT">P1 URGENT (&lt; 2h)</option>
-              <option value="P2_HIGH">P2 HIGH (&lt; 6h)</option>
-              <option value="P3_MEDIUM">P3 MEDIUM (&lt; 24h)</option>
-              <option value="P4_LOW">P4 LOW (Routine)</option>
+              <option value="ALL">All Priority Tiers</option>
+              <option value="P1_URGENT">P1 URGENT (&lt; 2h SLA)</option>
+              <option value="P2_HIGH">P2 HIGH (&lt; 6h SLA)</option>
+              <option value="P3_MEDIUM">P3 MEDIUM (&lt; 24h SLA)</option>
+              <option value="P4_LOW">P4 LOW (Routine Monitor)</option>
             </select>
           </div>
 
           {/* Verification Filter */}
-          <div>
+          <div className="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-lg border border-slate-200">
+            <ShieldCheck className="w-3 h-3 text-slate-400 shrink-0" />
             <select
               value={verificationFilter}
-              onChange={(e) => setVerificationFilter(e.target.value)}
-              className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs bg-white font-medium text-slate-700"
+              onChange={(e) => {
+                setVerificationFilter(e.target.value);
+                showInfo(`Verification filter: ${e.target.value}`);
+              }}
+              className="w-full bg-transparent text-xs font-medium text-slate-700 focus:outline-none cursor-pointer"
             >
-              <option value="ALL">All Verification</option>
+              <option value="ALL">All Verification States</option>
               <option value="VERIFIED_CONFIRMED">Verified Confirmed</option>
               <option value="PENDING_REVIEW">Pending Review</option>
-              <option value="RE_INSPECTION_REQUESTED">Re-Scan Requested</option>
+              <option value="UNVERIFIED">Unverified Only</option>
+              <option value="RE_INSPECTION_REQUESTED">Re-Inspection Requested</option>
             </select>
           </div>
 
-          {/* Sort Selector */}
-          <div>
+          {/* Hazard Filter */}
+          <div className="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-lg border border-slate-200">
+            <AlertTriangle className="w-3 h-3 text-slate-400 shrink-0" />
             <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
-              className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs bg-white font-medium text-slate-700"
+              value={hazardFilter}
+              onChange={(e) => {
+                setHazardFilter(e.target.value);
+                showInfo(`Hazard filter: ${e.target.value}`);
+              }}
+              className="w-full bg-transparent text-xs font-medium text-slate-700 focus:outline-none cursor-pointer"
             >
-              <option value="score">Sort by Priority Score</option>
-              <option value="uncertainty">Sort by Uncertainty</option>
-              <option value="date">Sort by Last Updated</option>
+              <option value="ALL">All Multi-Hazards</option>
+              <option value="LANDSLIDE">Landslides / Debris Flow</option>
+              <option value="FLOOD">Flash Floods</option>
+              <option value="CYCLONE">Severe Cyclonic Storm</option>
+              <option value="EARTHQUAKE">Seismic Ground Deformation</option>
             </select>
           </div>
         </div>
       </div>
 
       {/* Table / Queue List */}
-      <div className="overflow-x-auto max-h-[500px]">
+      <div className="overflow-x-auto max-h-[520px]">
         {sorted.length === 0 ? (
-          <div className="p-8 text-center text-slate-400 space-y-1">
+          <div className="p-10 text-center text-slate-400 space-y-2">
             <Layers className="w-8 h-8 mx-auto text-slate-300" />
-            <p className="font-bold">No matching disaster damage assessments found.</p>
-            <p className="text-[11px]">Try adjusting your search criteria or reset to scenario presets.</p>
+            <p className="font-bold text-slate-700">No matching disaster damage assessments found.</p>
+            <p className="text-[11px]">Try adjusting your search query, sorting, or reset filters.</p>
+            <button
+              onClick={handleResetFilters}
+              className="mt-2 px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold text-xs cursor-pointer inline-flex items-center gap-1.5"
+            >
+              <RotateCcw className="w-3 h-3" />
+              <span>Clear All Filters</span>
+            </button>
           </div>
         ) : (
           <table className="w-full text-left border-collapse min-w-[760px]">
             <thead>
-              <tr className="bg-slate-100/80 text-[10px] uppercase font-bold text-slate-500 tracking-wider border-b border-slate-200">
-                <th className="py-2.5 px-3">Priority</th>
-                <th className="py-2.5 px-3">Assessment ID & Event</th>
-                <th className="py-2.5 px-3">Location</th>
-                <th className="py-2.5 px-3">Physical Damage</th>
-                <th className="py-2.5 px-3">Evidence & Confidence</th>
-                <th className="py-2.5 px-3">Priority Score</th>
-                <th className="py-2.5 px-3">Assigned Inspector</th>
-                <th className="py-2.5 px-3">Verification</th>
+              <tr className="bg-slate-100/90 text-[10px] uppercase font-bold text-slate-500 tracking-wider border-b border-slate-200 select-none">
+                <th
+                  onClick={() => handleHeaderSortClick('score')}
+                  className="py-2.5 px-3 cursor-pointer hover:bg-slate-200/80 transition-colors"
+                  title="Click to sort by Priority Tier / Score"
+                >
+                  <div className="flex items-center gap-1">
+                    <span>Priority</span>
+                    {activeSortKey === 'score' ? (
+                      activeDirection === 'desc' ? (
+                        <ArrowDownNarrowWide className="w-3 h-3 text-orange-600" />
+                      ) : (
+                        <ArrowUpNarrowWide className="w-3 h-3 text-blue-600" />
+                      )
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 text-slate-300" />
+                    )}
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleHeaderSortClick('date')}
+                  className="py-2.5 px-3 cursor-pointer hover:bg-slate-200/80 transition-colors"
+                  title="Click to sort by Assessment Date"
+                >
+                  <div className="flex items-center gap-1">
+                    <span>Assessment ID & Event</span>
+                    {activeSortKey === 'date' ? (
+                      activeDirection === 'desc' ? (
+                        <ArrowDownNarrowWide className="w-3 h-3 text-orange-600" />
+                      ) : (
+                        <ArrowUpNarrowWide className="w-3 h-3 text-blue-600" />
+                      )
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 text-slate-300" />
+                    )}
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleHeaderSortClick('location')}
+                  className="py-2.5 px-3 cursor-pointer hover:bg-slate-200/80 transition-colors"
+                  title="Click to sort by Location Name"
+                >
+                  <div className="flex items-center gap-1">
+                    <span>Location</span>
+                    {activeSortKey === 'location' ? (
+                      activeDirection === 'desc' ? (
+                        <ArrowDownNarrowWide className="w-3 h-3 text-orange-600" />
+                      ) : (
+                        <ArrowUpNarrowWide className="w-3 h-3 text-blue-600" />
+                      )
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 text-slate-300" />
+                    )}
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleHeaderSortClick('damage')}
+                  className="py-2.5 px-3 cursor-pointer hover:bg-slate-200/80 transition-colors"
+                  title="Click to sort by Physical Damage"
+                >
+                  <div className="flex items-center gap-1">
+                    <span>Physical Damage</span>
+                    {activeSortKey === 'damage' ? (
+                      activeDirection === 'desc' ? (
+                        <ArrowDownNarrowWide className="w-3 h-3 text-orange-600" />
+                      ) : (
+                        <ArrowUpNarrowWide className="w-3 h-3 text-blue-600" />
+                      )
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 text-slate-300" />
+                    )}
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleHeaderSortClick('uncertainty')}
+                  className="py-2.5 px-3 cursor-pointer hover:bg-slate-200/80 transition-colors"
+                  title="Click to sort by AI Confidence & Uncertainty"
+                >
+                  <div className="flex items-center gap-1">
+                    <span>Confidence & Uncertainty</span>
+                    {activeSortKey === 'uncertainty' ? (
+                      activeDirection === 'desc' ? (
+                        <ArrowDownNarrowWide className="w-3 h-3 text-orange-600" />
+                      ) : (
+                        <ArrowUpNarrowWide className="w-3 h-3 text-blue-600" />
+                      )
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 text-slate-300" />
+                    )}
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleHeaderSortClick('score')}
+                  className="py-2.5 px-3 cursor-pointer hover:bg-slate-200/80 transition-colors"
+                  title="Click to sort by Composite Priority Score"
+                >
+                  <div className="flex items-center gap-1">
+                    <span>Priority Score</span>
+                    {activeSortKey === 'score' ? (
+                      activeDirection === 'desc' ? (
+                        <ArrowDownNarrowWide className="w-3 h-3 text-orange-600" />
+                      ) : (
+                        <ArrowUpNarrowWide className="w-3 h-3 text-blue-600" />
+                      )
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 text-slate-300" />
+                    )}
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleHeaderSortClick('verification')}
+                  className="py-2.5 px-3 cursor-pointer hover:bg-slate-200/80 transition-colors"
+                  title="Click to sort by Verification Status"
+                >
+                  <div className="flex items-center gap-1">
+                    <span>Verification</span>
+                    {activeSortKey === 'verification' ? (
+                      activeDirection === 'desc' ? (
+                        <ArrowDownNarrowWide className="w-3 h-3 text-orange-600" />
+                      ) : (
+                        <ArrowUpNarrowWide className="w-3 h-3 text-blue-600" />
+                      )
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 text-slate-300" />
+                    )}
+                  </div>
+                </th>
                 <th className="py-2.5 px-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {sorted.map((item) => {
-                const isSelected = item.id === selectedAssessmentId;
-                const evidenceCount = item.visualEvidence?.length || 0;
-                const modelConfidence = item.visualEvidence?.[0]?.confidence
-                  ? Math.round(item.visualEvidence[0].confidence * 100)
-                  : 92;
-                const assignedUnit = item.assignedTeam?.teamName || 'Unassigned';
-
+              {sorted.map((record) => {
+                const isSelected = selectedAssessmentId === record.id;
                 return (
                   <tr
-                    key={item.id}
-                    onClick={() => onSelectAssessment(item)}
-                    className={`transition-colors cursor-pointer text-xs ${
-                      isSelected
-                        ? 'bg-orange-50/70 border-l-4 border-orange-500'
-                        : 'hover:bg-slate-50'
+                    key={record.id}
+                    onClick={() => onSelectAssessment(record)}
+                    className={`cursor-pointer transition-colors ${
+                      isSelected ? 'bg-orange-50/70 border-l-4 border-l-orange-600' : 'hover:bg-slate-50'
                     }`}
                   >
                     {/* Priority Tier */}
-                    <td className="py-3 px-3 shrink-0">
+                    <td className="py-2.5 px-3 whitespace-nowrap">
                       <span
-                        className={`inline-block px-2 py-0.5 rounded text-[10px] font-mono border ${getPriorityBadgeStyle(
-                          item.priorityTier
+                        className={`text-[10px] px-2 py-0.5 rounded-full border ${getPriorityBadgeStyle(
+                          record.priorityTier
                         )}`}
                       >
-                        {item.priorityTier.replace('_', ' ')}
+                        {record.priorityTier.replace('_', ' ')}
                       </span>
                     </td>
 
                     {/* ID & Title */}
-                    <td className="py-3 px-3">
-                      <div className="font-bold text-slate-900 truncate max-w-[180px]" title={item.title}>
-                        {item.title}
+                    <td className="py-2.5 px-3">
+                      <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                        <span className="font-mono text-[11px] text-slate-600">{record.id}</span>
+                        {record.isPresetScenario && (
+                          <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-slate-100 text-slate-600 border border-slate-200">
+                            PRESET
+                          </span>
+                        )}
                       </div>
-                      <div className="text-[10px] font-mono text-slate-400">
-                        {item.id} • {item.disasterType}
-                      </div>
+                      <div className="text-[11px] text-slate-500 line-clamp-1">{record.title}</div>
                     </td>
 
                     {/* Location */}
-                    <td className="py-3 px-3">
-                      <div className="font-semibold text-slate-800 truncate max-w-[150px]">
-                        {item.locationName}
+                    <td className="py-2.5 px-3 whitespace-nowrap">
+                      <div className="font-bold text-slate-800 flex items-center gap-1">
+                        <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+                        <span className="truncate max-w-[130px]">{record.locationName}</span>
                       </div>
-                      <div className="text-[10px] text-slate-500 font-mono">
-                        {item.district}, {item.state}
+                      <div className="text-[10px] text-slate-400 font-mono">
+                        {record.district}, {record.state}
                       </div>
                     </td>
 
-                    {/* Damage Category */}
-                    <td className="py-3 px-3">
+                    {/* Physical Damage */}
+                    <td className="py-2.5 px-3 whitespace-nowrap">
                       <span
-                        className={`inline-block px-2 py-0.5 rounded text-[10px] border ${getDamageBadgeStyle(
-                          item.estimatedDamageCategory
+                        className={`text-[9px] px-2 py-0.5 rounded border ${getDamageBadgeStyle(
+                          record.estimatedDamageCategory
                         )}`}
                       >
-                        {item.estimatedDamageCategory}
+                        {record.estimatedDamageCategory.replace('_', ' ')}
                       </span>
-                    </td>
-
-                    {/* Evidence & Confidence */}
-                    <td className="py-3 px-3 font-mono text-[11px]">
-                      <div className="text-slate-800 font-bold">
-                        {evidenceCount} visual {evidenceCount === 1 ? 'cue' : 'cues'}
-                      </div>
-                      <div className="text-[10px] text-emerald-700 font-medium">
-                        {modelConfidence}% AI Conf ({item.postImage.sourcePlatform})
+                      <div className="text-[10px] text-slate-500 mt-0.5 font-mono">
+                        {(record.scores?.physicalDamageScore ?? 0).toFixed(0)}% score
                       </div>
                     </td>
 
-                    {/* Score & Formula Rationale */}
-                    <td className="py-3 px-3">
-                      <div className="font-black text-slate-900 font-mono text-sm">
-                        {item.scores.compositePriorityScore}
+                    {/* Confidence & Uncertainty */}
+                    <td className="py-2.5 px-3 whitespace-nowrap font-mono">
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 bg-slate-100 h-1.5 rounded-full overflow-hidden w-16">
+                          <div
+                            className="bg-emerald-500 h-full rounded-full"
+                            style={{ width: `${Math.max(5, 100 - (record.scores?.uncertaintyScore ?? 20))}%` }}
+                          />
+                        </div>
+                        <span className="text-[10px] font-bold text-slate-700">
+                          {Math.max(5, 100 - (record.scores?.uncertaintyScore ?? 20)).toFixed(0)}%
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-slate-400">
+                        Uncert: {(record.scores?.uncertaintyScore ?? 0).toFixed(0)}%
+                      </div>
+                    </td>
+
+                    {/* Priority Score */}
+                    <td className="py-2.5 px-3 whitespace-nowrap">
+                      <div className="text-base font-extrabold text-slate-900 font-mono">
+                        {record.scores?.compositePriorityScore?.toFixed(1)}
                         <span className="text-[10px] text-slate-400 font-normal">/100</span>
                       </div>
-                      <div className="text-[9px] text-slate-500 max-w-[140px] truncate" title={item.priorityRationale}>
-                        {item.priorityRationale}
-                      </div>
-                    </td>
-
-                    {/* Assigned Inspector / Team */}
-                    <td className="py-3 px-3 font-mono text-[11px]">
-                      <div className="text-slate-800 font-semibold truncate max-w-[120px]" title={assignedUnit}>
-                        {assignedUnit}
-                      </div>
-                      <div className="text-[9px] text-slate-400">
-                        {item.assignedTeam ? `${item.assignedTeam.teamType} (ETA ${item.assignedTeam.etaMinutes}m)` : 'Awaiting Dispatch'}
+                      <div className="text-[10px] text-slate-500 font-medium">
+                        SLA: {record.priorityTier === 'P1_URGENT' ? '2' : record.priorityTier === 'P2_HIGH' ? '6' : record.priorityTier === 'P3_MEDIUM' ? '24' : '72'}h
                       </div>
                     </td>
 
                     {/* Verification Status */}
-                    <td className="py-3 px-3">
-                      <span
-                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          item.verificationStatus === 'VERIFIED_CONFIRMED'
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : item.verificationStatus === 'PENDING_REVIEW'
-                            ? 'bg-amber-100 text-amber-800'
-                            : 'bg-red-100 text-red-800'
-                        }`}
-                      >
-                        {item.verificationStatus === 'VERIFIED_CONFIRMED' && (
-                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                        )}
-                        {item.verificationStatus === 'PENDING_REVIEW' && (
-                          <Clock className="w-3 h-3 text-amber-600" />
-                        )}
-                        <span>{item.verificationStatus.replace('_', ' ')}</span>
-                      </span>
+                    <td className="py-2.5 px-3 whitespace-nowrap">
+                      <div className="flex items-center gap-1.5 font-bold text-slate-700">
+                        {getVerificationIcon(record.verificationStatus)}
+                        <span className="text-[10px] font-mono">
+                          {record.verificationStatus.replace(/_/g, ' ')}
+                        </span>
+                      </div>
+                      {record.humanReview?.reviewerName && (
+                        <div className="text-[9px] text-slate-400 truncate max-w-[100px]">
+                          by {record.humanReview.reviewerName}
+                        </div>
+                      )}
                     </td>
 
-                    {/* Actions */}
-                    <td className="py-3 px-3 text-right">
+                    {/* Action buttons */}
+                    <td className="py-2.5 px-3 text-right whitespace-nowrap">
                       <div
-                        className="flex items-center justify-end gap-1.5"
+                        className="inline-flex items-center gap-1"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <button
                           type="button"
-                          onClick={() => onSelectAssessment(item)}
-                          className="px-2 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[10px] flex items-center gap-1 transition-colors"
-                          title="Inspect Evidence & Rationale"
-                        >
-                          <Eye className="w-3 h-3" />
-                          <span>View Details</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => onOpenVerifyModal(item)}
-                          className="p-1 rounded hover:bg-emerald-100 text-emerald-700"
-                          title="Verify or Adjust Priority"
+                          onClick={() => onOpenVerifyModal(record)}
+                          className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600 hover:text-emerald-700 transition-colors"
+                          title="Verify or adjust damage assessment"
+                          aria-label={`Verify assessment ${record.id}`}
                         >
                           <UserCheck className="w-3.5 h-3.5" />
                         </button>
                         <button
                           type="button"
-                          onClick={() => onOpenAssignModal(item)}
-                          className="p-1 rounded hover:bg-orange-100 text-orange-700"
-                          title="Dispatch Inspection Unit"
+                          onClick={() => onOpenAssignModal(record)}
+                          className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600 hover:text-blue-700 transition-colors"
+                          title="Dispatch Field Inspection Team"
+                          aria-label={`Dispatch team for assessment ${record.id}`}
                         >
                           <Users className="w-3.5 h-3.5" />
                         </button>
                         <button
                           type="button"
-                          onClick={() => onOpenReportModal(item)}
-                          className="p-1 rounded hover:bg-slate-200 text-slate-700"
-                          title="Generate NDMA PDF Report"
+                          onClick={() => onOpenReportModal(record)}
+                          className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600 hover:text-orange-700 transition-colors"
+                          title="Generate official PS-53 dossier"
+                          aria-label={`Generate report for assessment ${record.id}`}
                         >
                           <FileText className="w-3.5 h-3.5" />
                         </button>
@@ -373,6 +611,27 @@ export const InspectionPriorityQueue: React.FC<InspectionPriorityQueueProps> = (
             </tbody>
           </table>
         )}
+      </div>
+
+      {/* Footer Info */}
+      <div className="p-3 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between text-[11px] text-slate-500 gap-1.5">
+        <div className="flex items-center gap-3">
+          <span className="flex items-center gap-1 font-bold text-slate-700">
+            <span className="w-2 h-2 rounded-full bg-red-500" />
+            P1: &lt; 2h SLA
+          </span>
+          <span className="flex items-center gap-1 font-bold text-slate-700">
+            <span className="w-2 h-2 rounded-full bg-orange-500" />
+            P2: &lt; 6h SLA
+          </span>
+          <span className="flex items-center gap-1 font-bold text-slate-700">
+            <span className="w-2 h-2 rounded-full bg-amber-500" />
+            P3: &lt; 24h SLA
+          </span>
+        </div>
+        <div className="font-mono text-[10px] text-slate-400">
+          Showing {sorted.length} prioritized disaster site records
+        </div>
       </div>
     </div>
   );

@@ -27,6 +27,7 @@ import { DamageAssessmentWizard } from '../components/damage/DamageAssessmentWiz
 import { ScenarioSimulatorModal } from '../components/common/ScenarioSimulatorModal';
 import { DemoTourButton } from '../components/demo/DemoTourButton';
 import { DataProvenanceBadge } from '../components/common/DataProvenanceBadge';
+import { useDemoTour } from '../context/DemoTourContext';
 
 export const DashboardPage: React.FC = () => {
   const {
@@ -36,12 +37,12 @@ export const DashboardPage: React.FC = () => {
   } = useApp();
   const { alerts } = useAlerts();
   const { t, formatNumber } = useTranslation();
+  const { openDemoTour } = useDemoTour();
   const navigate = useNavigate();
 
   const [assessments, setAssessments] = useState<DamageAssessmentRecord[]>([]);
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [isSimulatorOpen, setIsSimulatorOpen] = useState(false);
-  const [showToolsDropdown, setShowToolsDropdown] = useState(false);
 
   useEffect(() => {
     setAssessments(damageAssessmentService.getAllAssessments());
@@ -73,102 +74,152 @@ export const DashboardPage: React.FC = () => {
   return (
     <div className="space-y-6 max-w-full min-w-0">
       {/* ========================================================================= */}
-      {/* 1. CLEAN STREAMLINED DASHBOARD HEADER                                     */}
+      {/* 1. PROFESSIONAL RESPONSIVE HERO SECTION (PS-53 & MULTI-HAZARD DSS)       */}
       {/* ========================================================================= */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-2 border-b border-slate-200">
-        <div>
-          <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-orange-100 text-orange-800 border border-orange-200">
-              PS-53 CORE
-            </span>
-            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-900 text-white">
-              DISASTER MANAGEMENT SYSTEM
-            </span>
-            <DataProvenanceBadge status="LIVE" label="OPERATIONAL FEED" size="sm" />
-          </div>
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-            Disaster Damage Prioritization & Emergency Overview
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-500 font-medium">
-            AI-assisted structural damage assessment and explainable inspection prioritization for rapid disaster response.
-          </p>
-        </div>
+      <section className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 lg:p-7 shadow-xs w-full min-w-0">
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] gap-5 lg:gap-8 items-center min-w-0">
+          {/* LEFT COLUMN: Badges, Heading, Description, Context Info */}
+          <div className="min-w-0 space-y-3">
+            {/* Badges */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="px-2.5 py-1 rounded-md text-[11px] font-mono font-bold bg-orange-100 text-orange-800 border border-orange-200 tracking-wider">
+                NDMA DSS
+              </span>
+              <span className="px-2.5 py-1 rounded-md text-[11px] font-mono font-bold bg-slate-900 text-white tracking-wider">
+                MULTI-HAZARD
+              </span>
+              <span className="px-2.5 py-1 rounded-md text-[11px] font-mono font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                PS-53 CORE
+              </span>
+              <DataProvenanceBadge status="LIVE" label="OPERATIONAL FEED" size="sm" />
+            </div>
 
-        {/* Primary and Secondary Action Buttons */}
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* PRIMARY ACTION */}
-          <button
-            onClick={() => setIsWizardOpen(true)}
-            className="px-4 py-2 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white rounded-xl text-xs font-black shadow-md shadow-orange-600/25 flex items-center gap-1.5 transition-all transform active:scale-95 cursor-pointer"
-            title="Start step-by-step guided damage assessment"
-          >
-            <Building2 className="w-4 h-4 text-orange-200" />
-            <span>Start Damage Assessment</span>
-          </button>
-
-          {/* SECONDARY ACTION */}
-          <Link
-            to="/damage-assessment?tab=queue"
-            className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-colors"
-          >
-            <Compass className="w-4 h-4 text-slate-600" />
-            <span>View All Priorities</span>
-          </Link>
-
-          {/* SECONDARY OPERATIONS DROPDOWN */}
-          <div className="relative">
-            <button
-              onClick={() => setShowToolsDropdown(!showToolsDropdown)}
-              className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1 border border-slate-300 transition-colors"
-              title="Additional Operational Tools"
+            {/* Responsive Heading */}
+            <h1
+              className="text-xl sm:text-2xl md:text-3xl lg:text-[28px] xl:text-3xl font-black text-slate-900 tracking-tight leading-snug sm:leading-tight break-words"
+              style={{ fontSize: 'clamp(1.25rem, 1.8vw + 0.6rem, 1.875rem)' }}
             >
-              <span>More Actions</span>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
-            </button>
+              DisasterGuard AI — Multi-Hazard Disaster Management & Early Warning System
+            </h1>
 
-            {showToolsDropdown && (
-              <>
-                <div
-                  className="fixed inset-0 z-30"
-                  onClick={() => setShowToolsDropdown(false)}
-                />
-                <div className="absolute right-0 mt-1.5 w-56 bg-white border border-slate-200 rounded-xl shadow-xl z-40 py-1.5 text-xs">
-                  <button
-                    onClick={() => {
-                      setShowToolsDropdown(false);
-                      setIsSimulatorOpen(true);
-                    }}
-                    className="w-full text-left px-3.5 py-2 hover:bg-slate-50 flex items-center gap-2 text-slate-700"
-                  >
-                    <Activity className="w-4 h-4 text-red-500" />
-                    <span>Run Scenario Simulator</span>
-                  </button>
-                  <Link
-                    to="/drone-rescue"
-                    onClick={() => setShowToolsDropdown(false)}
-                    className="w-full text-left px-3.5 py-2 hover:bg-slate-50 flex items-center gap-2 text-slate-700"
-                  >
-                    <Crosshair className="w-4 h-4 text-orange-500" />
-                    <span>Drone UAV Rescue Scanner</span>
-                  </Link>
-                  <Link
-                    to="/evacuation"
-                    onClick={() => setShowToolsDropdown(false)}
-                    className="w-full text-left px-3.5 py-2 hover:bg-slate-50 flex items-center gap-2 text-slate-700"
-                  >
-                    <Navigation className="w-4 h-4 text-emerald-500" />
-                    <span>Plan Evacuation Corridor</span>
-                  </Link>
-                  <div className="border-t border-slate-100 my-1" />
-                  <div className="px-3 py-1">
-                    <DemoTourButton variant="hero" />
+            {/* Supporting description */}
+            <p className="text-xs sm:text-sm text-slate-600 font-medium leading-relaxed max-w-2xl">
+              AI-assisted structural damage assessment, real-time hydrological risk forecasting, and explainable inspection prioritization for rapid disaster triage and field response across vulnerable sectors.
+            </p>
+
+            {/* Supporting context info */}
+            <div className="flex items-center gap-2 sm:gap-4 pt-1 text-[11px] sm:text-xs text-slate-500 font-medium flex-wrap">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Sector: <strong className="text-slate-800">{activeLocation.name}</strong></span>
+              </span>
+              <span className="hidden sm:inline text-slate-300">•</span>
+              <span>Framework: <strong className="text-slate-800">EMS-98 & FEMA Tiers</strong></span>
+              <span className="hidden sm:inline text-slate-300">•</span>
+              <span>Team: <strong className="text-orange-700 font-semibold">Ai Verse (Team Heroshi)</strong></span>
+            </div>
+          </div>
+
+          {/* RIGHT COLUMN: Neatly aligned group of action buttons */}
+          <div className="min-w-0 w-full">
+            <div className="space-y-2.5">
+              {/* Button 1: Start Project Demo (Primary Action) */}
+              <button
+                type="button"
+                onClick={() => openDemoTour(0)}
+                className="w-full group relative flex items-center justify-center gap-2.5 px-4 py-3 sm:py-3.5 rounded-xl font-extrabold text-xs sm:text-sm text-white bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 hover:from-orange-500 hover:to-amber-500 shadow-md shadow-orange-600/25 hover:shadow-lg hover:shadow-orange-600/40 hover:scale-[1.01] active:scale-[0.99] transition-all border border-orange-400/40 cursor-pointer overflow-hidden"
+                title="Launch Interactive Hackathon Jury Demo Walkthrough"
+              >
+                <span className="w-2 h-2 rounded-full bg-white animate-ping shrink-0" />
+                <Sparkles className="w-4 h-4 text-orange-200 shrink-0" />
+                <span className="tracking-wide uppercase font-black">▶ Start Project Demo</span>
+              </button>
+
+              {/* Grid of secondary action buttons */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5">
+                {/* Button 2: Damage Prioritization (PS-53) */}
+                <Link
+                  to="/damage-assessment"
+                  className="px-3 py-2.5 rounded-xl text-xs font-bold text-slate-800 bg-slate-50 hover:bg-slate-100 border border-slate-200/90 hover:border-slate-300 flex items-center gap-2 shadow-2xs hover:shadow-xs transition-all truncate group"
+                  title="Navigate to Damage Assessment & Prioritization Workspace (PS-53)"
+                >
+                  <div className="w-7 h-7 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <Building2 className="w-3.5 h-3.5" />
                   </div>
-                </div>
-              </>
-            )}
+                  <div className="min-w-0 text-left truncate">
+                    <p className="font-extrabold text-slate-900 truncate leading-tight">Damage Prioritization</p>
+                    <p className="text-[10px] text-slate-500 font-mono truncate">PS-53 Engine</p>
+                  </div>
+                </Link>
+
+                {/* Button 3: Scenario Simulator */}
+                <button
+                  type="button"
+                  onClick={() => setIsSimulatorOpen(true)}
+                  className="px-3 py-2.5 rounded-xl text-xs font-bold text-slate-800 bg-slate-50 hover:bg-slate-100 border border-slate-200/90 hover:border-slate-300 flex items-center gap-2 shadow-2xs hover:shadow-xs transition-all truncate group text-left cursor-pointer"
+                  title="Launch Multi-Hazard Disaster Scenario Simulator"
+                >
+                  <div className="w-7 h-7 rounded-lg bg-red-100 text-red-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <Activity className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="min-w-0 text-left truncate">
+                    <p className="font-extrabold text-slate-900 truncate leading-tight">Scenario Simulator</p>
+                    <p className="text-[10px] text-slate-500 font-mono truncate">Cascade Sim</p>
+                  </div>
+                </button>
+
+                {/* Button 4: Drone Rescue */}
+                <Link
+                  to="/drone-rescue"
+                  className="px-3 py-2.5 rounded-xl text-xs font-bold text-slate-800 bg-slate-50 hover:bg-slate-100 border border-slate-200/90 hover:border-slate-300 flex items-center gap-2 shadow-2xs hover:shadow-xs transition-all truncate group"
+                  title="Navigate to Autonomous UAV Drone Rescue Scanner"
+                >
+                  <div className="w-7 h-7 rounded-lg bg-sky-100 text-sky-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <Crosshair className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="min-w-0 text-left truncate">
+                    <p className="font-extrabold text-slate-900 truncate leading-tight">Drone Rescue</p>
+                    <p className="text-[10px] text-slate-500 font-mono truncate">UAV Thermal</p>
+                  </div>
+                </Link>
+
+                {/* Button 5: Evacuation Routes */}
+                <Link
+                  to="/evacuation"
+                  className="px-3 py-2.5 rounded-xl text-xs font-bold text-slate-800 bg-slate-50 hover:bg-slate-100 border border-slate-200/90 hover:border-slate-300 flex items-center gap-2 shadow-2xs hover:shadow-xs transition-all truncate group"
+                  title="Navigate to Dynamic Evacuation Routes & Safe Relief Hubs"
+                >
+                  <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <Navigation className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="min-w-0 text-left truncate">
+                    <p className="font-extrabold text-slate-900 truncate leading-tight">Evacuation Routes</p>
+                    <p className="text-[10px] text-slate-500 font-mono truncate">Safe Corridors</p>
+                  </div>
+                </Link>
+
+                {/* Button 6: AI Predictor */}
+                <Link
+                  to="/prediction"
+                  className="sm:col-span-2 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-800 bg-slate-50 hover:bg-slate-100 border border-slate-200/90 hover:border-slate-300 flex items-center justify-between gap-2 shadow-2xs hover:shadow-xs transition-all truncate group"
+                  title="Navigate to AI Geotechnical Landslide & Flood Predictor"
+                >
+                  <div className="flex items-center gap-2 min-w-0 truncate">
+                    <div className="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                      <Sparkles className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="min-w-0 text-left truncate">
+                      <p className="font-extrabold text-slate-900 truncate leading-tight">AI Predictor</p>
+                      <p className="text-[10px] text-slate-500 font-mono truncate">9 Geotechnical & Rainfall Parameters</p>
+                    </div>
+                  </div>
+                  <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-800 group-hover:translate-x-0.5 transition-all shrink-0 mr-1" />
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
       {/* ========================================================================= */}
       {/* 2. ESSENTIAL SUMMARY CARDS (EXACT 4 CARDS AS SPECIFIED)                   */}

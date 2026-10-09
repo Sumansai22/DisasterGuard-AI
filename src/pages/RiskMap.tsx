@@ -29,6 +29,17 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { usePrediction } from '../context/PredictionContext';
 
+const DEFAULT_COMMAND_STATS: CommandSummaryStats = {
+  active_incidents: 12,
+  critical_zones: 4,
+  high_risk_zones: 8,
+  active_alerts: 6,
+  sensors_online_pct: 94,
+  safe_shelters: 7,
+  blocked_roads: 3,
+  geo_filtered_radius_km: 120,
+};
+
 export const RiskMapPage: React.FC = () => {
   const {
     activeLocation,
@@ -54,16 +65,7 @@ export const RiskMapPage: React.FC = () => {
   const [criticalInfra, setCriticalInfra] = useState<CriticalInfrastructureItem[]>([]);
   const [sensorNodes, setSensorNodes] = useState<SensorNodeItem[]>([]);
   const [vulnerabilityZones, setVulnerabilityZones] = useState<PopulationVulnerabilityItem[]>([]);
-  const [commandStats, setCommandStats] = useState<CommandSummaryStats>({
-    active_incidents: 12,
-    critical_zones: 4,
-    high_risk_zones: 8,
-    active_alerts: 6,
-    sensors_online_pct: 94,
-    safe_shelters: 7,
-    blocked_roads: 3,
-    geo_filtered_radius_km: 120,
-  });
+  const [commandStats, setCommandStats] = useState<CommandSummaryStats>(DEFAULT_COMMAND_STATS);
 
   const activeLat = activeLocation.lat;
   const activeLng = activeLocation.lng;
@@ -74,16 +76,29 @@ export const RiskMapPage: React.FC = () => {
     setLoadingTelemetry(true);
     try {
       const data = await mapService.getDisasterMapContext(lat, lng, 120);
-      setCommandStats(data.summary);
-      setIncidents(data.incidents || []);
-      setRainfallStations(data.rainfall_stations || []);
-      setWaterBodies(data.water_bodies || []);
-      setEmergencyInfra(data.emergency_infrastructure || []);
-      setCriticalInfra(data.critical_infrastructure || []);
-      setSensorNodes(data.sensors || []);
-      setVulnerabilityZones(data.vulnerability_zones || []);
+      if (data && typeof data === 'object') {
+        if (data.summary && typeof data.summary === 'object') {
+          setCommandStats((prev) => ({
+            active_incidents: typeof data.summary.active_incidents === 'number' ? data.summary.active_incidents : prev.active_incidents,
+            critical_zones: typeof data.summary.critical_zones === 'number' ? data.summary.critical_zones : prev.critical_zones,
+            high_risk_zones: typeof data.summary.high_risk_zones === 'number' ? data.summary.high_risk_zones : prev.high_risk_zones,
+            active_alerts: typeof data.summary.active_alerts === 'number' ? data.summary.active_alerts : prev.active_alerts,
+            sensors_online_pct: typeof data.summary.sensors_online_pct === 'number' ? data.summary.sensors_online_pct : prev.sensors_online_pct,
+            safe_shelters: typeof data.summary.safe_shelters === 'number' ? data.summary.safe_shelters : prev.safe_shelters,
+            blocked_roads: typeof data.summary.blocked_roads === 'number' ? data.summary.blocked_roads : prev.blocked_roads,
+            geo_filtered_radius_km: typeof data.summary.geo_filtered_radius_km === 'number' ? data.summary.geo_filtered_radius_km : 120,
+          }));
+        }
+        setIncidents(Array.isArray(data.incidents) ? data.incidents : []);
+        setRainfallStations(Array.isArray(data.rainfall_stations) ? data.rainfall_stations : []);
+        setWaterBodies(Array.isArray(data.water_bodies) ? data.water_bodies : []);
+        setEmergencyInfra(Array.isArray(data.emergency_infrastructure) ? data.emergency_infrastructure : []);
+        setCriticalInfra(Array.isArray(data.critical_infrastructure) ? data.critical_infrastructure : []);
+        setSensorNodes(Array.isArray(data.sensors) ? data.sensors : []);
+        setVulnerabilityZones(Array.isArray(data.vulnerability_zones) ? data.vulnerability_zones : []);
+      }
     } catch (err) {
-      console.error('Failed to load disaster context', err);
+      console.warn('Failed to load disaster context, retaining safe fallback statistics', err);
     } finally {
       setLoadingTelemetry(false);
     }

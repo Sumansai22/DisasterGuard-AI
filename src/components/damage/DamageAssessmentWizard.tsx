@@ -26,6 +26,8 @@ import {
   VisualDamageEvidence,
 } from '../../types/damageAssessment';
 import { damageAssessmentService } from '../../services/damageAssessmentService';
+import { useFeedback } from '../../context/FeedbackContext';
+import { InlineFeedback } from '../common/InlineFeedback';
 
 interface DamageAssessmentWizardProps {
   isOpen: boolean;
@@ -106,11 +108,16 @@ export const DamageAssessmentWizard: React.FC<DamageAssessmentWizardProps> = ({
   const priorityTier: InspectionPriorityTier =
     compositeScore >= 75 ? 'P1_URGENT' : compositeScore >= 55 ? 'P2_HIGH' : compositeScore >= 35 ? 'P3_MEDIUM' : 'P4_LOW';
 
+  const { showSuccess, showError, showLoading, dismissFeedback } = useFeedback();
+
   const handleRunAiAnalysis = () => {
     setIsAnalyzing(true);
+    const loadId = showLoading('Analyzing image...');
     setTimeout(() => {
       setIsAnalyzing(false);
       setAnalysisCompleted(true);
+      dismissFeedback(loadId);
+      showSuccess('Analysis completed. Review the estimated findings below.');
     }, 1200);
   };
 
@@ -121,9 +128,16 @@ export const DamageAssessmentWizard: React.FC<DamageAssessmentWizardProps> = ({
     setLat(preset.lat.toFixed(4));
     setLng(preset.lng.toFixed(4));
     setDisasterEvent(preset.event);
+    showSuccess(`Applied preset: ${preset.name}`);
   };
 
   const handleFinalSubmit = () => {
+    if (isSubmitting) return; // Prevent accidental duplicate submission
+    if (!locationName.trim()) {
+      showError('Location name is required to register this damage assessment.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     const preMeta: ImageMetadata = {
@@ -193,6 +207,7 @@ export const DamageAssessmentWizard: React.FC<DamageAssessmentWizardProps> = ({
     setCreatedRecord(record);
     setIsSubmitting(false);
     onAssessmentCompleted(record);
+    showSuccess('Damage assessment saved successfully.');
   };
 
   return (

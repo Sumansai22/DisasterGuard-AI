@@ -24,6 +24,17 @@ export const DisasterCommandSummary: React.FC<DisasterCommandSummaryProps> = ({
   loading = false,
   onRefresh,
 }) => {
+  const safeStats: CommandSummaryStats = {
+    active_incidents: typeof stats?.active_incidents === 'number' ? stats.active_incidents : 0,
+    critical_zones: typeof stats?.critical_zones === 'number' ? stats.critical_zones : 0,
+    high_risk_zones: typeof stats?.high_risk_zones === 'number' ? stats.high_risk_zones : 0,
+    active_alerts: typeof stats?.active_alerts === 'number' ? stats.active_alerts : 0,
+    sensors_online_pct: typeof stats?.sensors_online_pct === 'number' ? stats.sensors_online_pct : 94,
+    safe_shelters: typeof stats?.safe_shelters === 'number' ? stats.safe_shelters : 7,
+    blocked_roads: typeof stats?.blocked_roads === 'number' ? stats.blocked_roads : 0,
+    geo_filtered_radius_km: typeof stats?.geo_filtered_radius_km === 'number' ? stats.geo_filtered_radius_km : 120,
+  };
+
   return (
     <div className="bg-slate-900 text-white rounded-2xl p-3.5 md:p-4 border border-slate-800 shadow-lg">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-slate-800 mb-3">
@@ -40,7 +51,7 @@ export const DisasterCommandSummary: React.FC<DisasterCommandSummaryProps> = ({
               </span>
             </h3>
             <p className="text-[11px] text-slate-400">
-              {locationName ? `Tactical Area: ${locationName}` : 'National Early Warning Grid'} • {stats.geo_filtered_radius_km} km radius
+              {locationName ? `Tactical Area: ${locationName}` : 'National Early Warning Grid'} • {safeStats.geo_filtered_radius_km} km radius
             </p>
           </div>
         </div>
@@ -72,7 +83,7 @@ export const DisasterCommandSummary: React.FC<DisasterCommandSummaryProps> = ({
           </div>
           <div className="flex items-baseline gap-1.5 mt-1">
             <span className="text-xl md:text-2xl font-black text-red-400 font-mono">
-              {stats.active_incidents}
+              {safeStats.active_incidents}
             </span>
             <span className="text-[10px] text-red-300 font-medium">Critical</span>
           </div>
@@ -86,7 +97,7 @@ export const DisasterCommandSummary: React.FC<DisasterCommandSummaryProps> = ({
           </div>
           <div className="flex items-baseline gap-1.5 mt-1">
             <span className="text-xl md:text-2xl font-black text-orange-400 font-mono">
-              {stats.critical_zones}
+              {safeStats.critical_zones}
             </span>
             <span className="text-[10px] text-orange-300 font-medium">Polygon</span>
           </div>
@@ -100,7 +111,7 @@ export const DisasterCommandSummary: React.FC<DisasterCommandSummaryProps> = ({
           </div>
           <div className="flex items-baseline gap-1.5 mt-1">
             <span className="text-xl md:text-2xl font-black text-amber-400 font-mono">
-              {stats.high_risk_zones}
+              {safeStats.high_risk_zones}
             </span>
             <span className="text-[10px] text-amber-300 font-medium">Alert</span>
           </div>
@@ -114,7 +125,7 @@ export const DisasterCommandSummary: React.FC<DisasterCommandSummaryProps> = ({
           </div>
           <div className="flex items-baseline gap-1.5 mt-1">
             <span className="text-xl md:text-2xl font-black text-yellow-400 font-mono">
-              {stats.active_alerts}
+              {safeStats.active_alerts}
             </span>
             <span className="text-[10px] text-yellow-300 font-medium">Dispatched</span>
           </div>
@@ -128,7 +139,7 @@ export const DisasterCommandSummary: React.FC<DisasterCommandSummaryProps> = ({
           </div>
           <div className="flex items-baseline gap-1.5 mt-1">
             <span className="text-xl md:text-2xl font-black text-emerald-400 font-mono">
-              {stats.sensors_online_pct}%
+              {safeStats.sensors_online_pct}%
             </span>
             <span className="text-[10px] text-emerald-300 font-medium">Mesh</span>
           </div>
@@ -142,7 +153,7 @@ export const DisasterCommandSummary: React.FC<DisasterCommandSummaryProps> = ({
           </div>
           <div className="flex items-baseline gap-1.5 mt-1">
             <span className="text-xl md:text-2xl font-black text-teal-400 font-mono">
-              {stats.safe_shelters}
+              {safeStats.safe_shelters}
             </span>
             <span className="text-[10px] text-teal-300 font-medium">Available</span>
           </div>
@@ -156,7 +167,7 @@ export const DisasterCommandSummary: React.FC<DisasterCommandSummaryProps> = ({
           </div>
           <div className="flex items-baseline gap-1.5 mt-1">
             <span className="text-xl md:text-2xl font-black text-rose-400 font-mono">
-              {stats.blocked_roads}
+              {safeStats.blocked_roads}
             </span>
             <span className="text-[10px] text-rose-300 font-medium">Corridors</span>
           </div>

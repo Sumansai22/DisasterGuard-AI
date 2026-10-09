@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { ImageMetadata, DamageAssessmentRecord } from '../../types/damageAssessment';
 import { damageAssessmentService } from '../../services/damageAssessmentService';
+import { useFeedback } from '../../context/FeedbackContext';
 
 interface ImageUploadModalProps {
   isOpen: boolean;
@@ -65,6 +66,8 @@ export const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
 
   if (!isOpen) return null;
 
+  const { showSuccess, showError, showLoading, dismissFeedback } = useFeedback();
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, isPost: boolean) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -74,12 +77,14 @@ export const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
     // Validate type
     if (!SUPPORTED_FORMATS.includes(file.type) && !file.name.match(/\.(jpg|jpeg|png|webp|tif|tiff)$/i)) {
       setValidationError(`Unsupported file type: ${file.name}. Allowed: .jpg, .png, .webp, .tiff`);
+      showError(`Unsupported file format. Please upload JPG, PNG, WebP, or TIFF.`);
       return;
     }
 
     // Validate size
     if (file.size > MAX_SIZE_BYTES) {
       setValidationError(`File size ${(file.size / 1024 / 1024).toFixed(1)}MB exceeds 15MB limit.`);
+      showError(`File size exceeds 15MB limit.`);
       return;
     }
 
@@ -100,17 +105,22 @@ export const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
     } else {
       setPreImage(meta);
     }
+    showSuccess('Image uploaded successfully.');
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isAnalyzing) return; // Prevent duplicate submission
+
     if (!title.trim()) {
       setValidationError('Please provide an assessment title.');
+      showError('Please provide an assessment title.');
       return;
     }
 
     setIsAnalyzing(true);
     setValidationError(null);
+    const loadId = showLoading('Analyzing image...');
 
     setTimeout(() => {
       try {
@@ -146,11 +156,16 @@ export const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
         });
 
         setIsAnalyzing(false);
+        dismissFeedback(loadId);
+        showSuccess('Analysis completed. Review the estimated findings below.');
+        showSuccess('Damage assessment saved successfully.');
         onAssessmentCreated(newRecord);
         onClose();
       } catch (err: any) {
         setIsAnalyzing(false);
+        dismissFeedback(loadId);
         setValidationError(err.message || 'Analysis pipeline failed.');
+        showError('Could not complete the assessment. Check the connection and try again.');
       }
     }, 1200);
   };

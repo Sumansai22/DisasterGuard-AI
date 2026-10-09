@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { useFeedback } from '../context/FeedbackContext';
 import { DamageAssessmentRecord } from '../types/damageAssessment';
 import { damageAssessmentService } from '../services/damageAssessmentService';
 import { ImageComparisonSlider } from '../components/damage/ImageComparisonSlider';
@@ -59,6 +60,8 @@ export const DamageAssessmentPage: React.FC = () => {
     }
   }, []);
 
+  const { showSuccess, showInfo } = useFeedback();
+
   const handleSelectAssessment = (record: DamageAssessmentRecord) => {
     setSelectedAssessment(record);
     setMapCenter([record.coordinates.lat, record.coordinates.lng]);
@@ -71,16 +74,19 @@ export const DamageAssessmentPage: React.FC = () => {
     if (pristine.length > 0) {
       setSelectedAssessment(pristine[0]);
     }
+    showSuccess('Assessments reset to verified presets.');
   };
 
   const handleRecordUpdated = (updated: DamageAssessmentRecord) => {
     setAssessments((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
     setSelectedAssessment(updated);
+    showSuccess(`Damage assessment ${updated.id} updated successfully.`);
   };
 
   const handleAssessmentCreated = (newRecord: DamageAssessmentRecord) => {
     setAssessments((prev) => [newRecord, ...prev]);
     setSelectedAssessment(newRecord);
+    showSuccess('Damage assessment saved successfully. Prioritization scores computed.');
   };
 
   if (!selectedAssessment) {

@@ -15,6 +15,7 @@ import {
   HumanVerificationStatus,
 } from '../../types/damageAssessment';
 import { damageAssessmentService } from '../../services/damageAssessmentService';
+import { useFeedback } from '../../context/FeedbackContext';
 
 interface HumanVerificationModalProps {
   isOpen: boolean;
@@ -29,6 +30,7 @@ export const HumanVerificationModal: React.FC<HumanVerificationModalProps> = ({
   assessment,
   onVerified,
 }) => {
+  const { showSuccess, showError } = useFeedback();
   const [reviewerName, setReviewerName] = useState('Dr. S. K. Ramanathan');
   const [reviewerRole, setReviewerRole] = useState('State Disaster Management Authority (SDMA) Chief Geologist');
   const [badgeId, setBadgeId] = useState('SDMA-OFFICER-108');
@@ -45,6 +47,7 @@ export const HumanVerificationModal: React.FC<HumanVerificationModalProps> = ({
     e.preventDefault();
     if (!reviewerName.trim() || !justification.trim()) {
       setError('Reviewer Name and Justification Rationale are required for auditability.');
+      showError('Please complete all required fields.');
       return;
     }
 
@@ -58,6 +61,7 @@ export const HumanVerificationModal: React.FC<HumanVerificationModalProps> = ({
     });
 
     if (updated) {
+      showSuccess(`Assessment ${assessment.id} verified as ${decision.replace(/_/g, ' ')}.`);
       onVerified(updated);
       onClose();
     }

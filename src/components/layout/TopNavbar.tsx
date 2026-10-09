@@ -13,6 +13,8 @@ import {
   AlertCircle,
   Globe,
   AlertOctagon,
+  SlidersHorizontal,
+  ArrowRight,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { MONITORED_STATIONS } from '../../utils/constants';
@@ -60,6 +62,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
   const [showNotifications, setShowNotifications] = useState(false);
   const [showSosModal, setShowSosModal] = useState(false);
   const [showRoleModal, setShowRoleModal] = useState(false);
+  const [showUtilityMenu, setShowUtilityMenu] = useState(false);
 
 
   // Global Location Search State
@@ -154,7 +157,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
         {/* ========================================================================= */}
         {/* LEFT SECTION: Hamburger, Brand (mobile), Location & Hazard Controls       */}
         {/* ========================================================================= */}
-        <div className="flex items-center gap-1.5 sm:gap-2 md:gap-2.5 flex-1 min-w-0 max-w-[65%] sm:max-w-[60%] lg:max-w-[52%]">
+        <div className="flex items-center gap-1.5 sm:gap-2 md:gap-2.5 min-w-0 flex-1">
           {/* Hamburger Sidebar Trigger */}
           <button
             onClick={() => {
@@ -182,7 +185,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
           </div>
 
           {/* ACTIVE GEOGRAPHIC LOCATION INDICATOR & TELEMETRY STATION SELECTOR (Desktop/Tablet) */}
-          <div className="relative hidden md:block shrink-0">
+          <div className="relative hidden sm:block shrink-0">
             <button
               onClick={() => {
                 setShowStationDropdown(!showStationDropdown);
@@ -279,7 +282,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
           </div>
 
           {/* MULTI-HAZARD MODE SELECTOR PILL (Desktop/Laptop) */}
-          <div className="relative hidden lg:block shrink-0">
+          <div className="relative hidden 2xl:block shrink-0">
             <button
               onClick={() => {
                 setShowHazardDropdown(!showHazardDropdown);
@@ -345,7 +348,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
           </div>
 
           {/* Global Geocoding Search Bar (Collapsible on narrow screens) */}
-          <div ref={searchContainerRef} className="relative flex-1 min-w-[120px] max-w-xs xl:max-w-sm hidden sm:block">
+          <div ref={searchContainerRef} className="relative flex-1 min-w-[140px] max-w-[200px] xl:max-w-[260px] hidden md:block">
             <div className="relative flex items-center">
               <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 shrink-0 pointer-events-none" />
               <input
@@ -448,11 +451,8 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
         {/* ========================================================================= */}
         {/* RIGHT SECTION: Language, SOS, Live API, System Status, Alerts, NDMA       */}
         {/* ========================================================================= */}
-        <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2 shrink-0 justify-end">
-          {/* Multilingual Selector */}
-          <LanguageSelector />
-
-          {/* Emergency SOS High-Priority Trigger */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 justify-end">
+          {/* 1. Emergency SOS High-Priority Trigger (Always Visible) */}
           <button
             onClick={() => setShowSosModal(true)}
             className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider flex items-center gap-1 sm:gap-1.5 shadow-md shadow-red-600/30 ring-2 ring-red-400/50 animate-pulse transition-all cursor-pointer shrink-0"
@@ -464,24 +464,135 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             <span className="xl:hidden whitespace-nowrap">SOS</span>
           </button>
 
-          {/* Interactive Hackathon Demo Mode Walkthrough Trigger */}
-          <DemoTourButton variant="navbar" />
-
-          {/* Demo Mode / Live API Toggle */}
-          <DemoModeToggle />
-
-          {/* System Status (Visible on md and up) */}
-          <div className="hidden md:block shrink-0">
-            <SystemStatusIndicator variant="badge" />
+          {/* 2. Interactive Hackathon Demo Mode Walkthrough Trigger */}
+          <div className="hidden sm:inline-flex shrink-0">
+            <DemoTourButton variant="navbar" />
           </div>
 
-          {/* Notifications Icon with Dropdown */}
+          {/* 3. Inline Utilities (Desktop xl and 2xl) */}
+          <div className="hidden xl:flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Multilingual Selector */}
+            <LanguageSelector />
+
+            {/* Demo Mode / Live API Toggle (Visible on 2xl) */}
+            <div className="hidden 2xl:block shrink-0">
+              <DemoModeToggle />
+            </div>
+
+            {/* System Status (Visible on 2xl) */}
+            <div className="hidden 2xl:block shrink-0">
+              <SystemStatusIndicator variant="badge" />
+            </div>
+
+            {/* NDMA Operations Badge -> Link to Mission Control */}
+            <Link
+              to="/mission-control"
+              className="hidden lg:flex items-center gap-1.5 pl-1.5 sm:pl-2 border-l border-slate-200 shrink-0 hover:opacity-85 transition-opacity"
+              title="Open NDMA Operations — Disaster Management Mission Control Center"
+            >
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-orange-100 text-orange-700 flex items-center justify-center font-bold text-xs border border-orange-200 shrink-0 shadow-2xs">
+                <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              </div>
+              <div className="hidden 2xl:block text-left min-w-0">
+                <p className="text-xs font-bold text-slate-800 leading-none truncate">{t('app.ndmaOperations', 'NDMA Operations')}</p>
+                <p className="text-[10px] text-slate-400 mt-0.5 truncate">{t('app.controlCenter', 'Mission Control')}</p>
+              </div>
+            </Link>
+          </div>
+
+          {/* 4. Compact Overflow Menu for Platform Tools (Visible on screens < 2xl) */}
+          <div className="relative 2xl:hidden shrink-0">
+            <button
+              onClick={() => {
+                setShowUtilityMenu(!showUtilityMenu);
+                setShowNotifications(false);
+                setShowStationDropdown(false);
+                setShowHazardDropdown(false);
+              }}
+              className={`px-2 sm:px-2.5 py-1.5 rounded-lg border text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
+                showUtilityMenu
+                  ? 'bg-slate-200 border-slate-300 text-slate-900'
+                  : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700 shadow-2xs'
+              }`}
+              title="Platform Utilities: Language, Telemetry Mode, System Health & Mission Control"
+              aria-label="Platform Utilities Menu"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5 text-slate-600 shrink-0" />
+              <span className="hidden md:inline font-semibold text-xs">Tools</span>
+              <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform ${showUtilityMenu ? 'rotate-180' : ''}`} />
+            </button>
+
+            {showUtilityMenu && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setShowUtilityMenu(false)}
+                />
+                <div className="absolute right-0 mt-2 w-72 sm:w-80 bg-white rounded-2xl shadow-2xl border border-slate-200 p-3.5 z-50 animate-in fade-in zoom-in-95 duration-150 space-y-3 max-w-[calc(100vw-1.5rem)] font-sans">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                    <div className="flex items-center gap-1.5">
+                      <SlidersHorizontal className="w-4 h-4 text-orange-600" />
+                      <span className="text-xs font-black text-slate-900 uppercase tracking-wider">
+                        Platform Utilities
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => setShowUtilityMenu(false)}
+                      className="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Language Selector (inside tools when < xl) */}
+                  <div className="xl:hidden space-y-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Language</span>
+                    <LanguageSelector className="w-full" />
+                  </div>
+
+                  {/* Demo Mode Toggle */}
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Data Feed Mode</span>
+                    <div>
+                      <DemoModeToggle />
+                    </div>
+                  </div>
+
+                  {/* Telemetry Status */}
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">System Telemetry Health</span>
+                    <div>
+                      <SystemStatusIndicator variant="badge" />
+                    </div>
+                  </div>
+
+                  {/* Mission Control Link */}
+                  <div className="pt-2 border-t border-slate-100">
+                    <Link
+                      to="/mission-control"
+                      onClick={() => setShowUtilityMenu(false)}
+                      className="flex items-center justify-between p-2.5 rounded-xl bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-950 font-bold text-xs transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Shield className="w-4 h-4 text-orange-600" />
+                        <span>NDMA Mission Control Center</span>
+                      </div>
+                      <ArrowRight className="w-3.5 h-3.5 text-orange-600" />
+                    </Link>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* 5. Notifications Icon with Dropdown (Always Visible) */}
           <div className="relative shrink-0">
             <button
               onClick={() => {
                 setShowNotifications(!showNotifications);
                 setShowStationDropdown(false);
                 setShowHazardDropdown(false);
+                setShowUtilityMenu(false);
               }}
               className="p-1.5 sm:p-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors relative"
               title={t('app.notifications', 'Emergency Alerts')}
@@ -497,7 +608,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
                   className="fixed inset-0 z-40"
                   onClick={() => setShowNotifications(false)}
                 />
-                <div className="absolute right-0 mt-2 w-72 sm:w-80 md:w-96 bg-white rounded-xl shadow-2xl border border-slate-200 py-3 z-50 animate-in fade-in duration-150">
+                <div className="absolute right-0 mt-2 w-72 sm:w-80 md:w-96 bg-white rounded-xl shadow-2xl border border-slate-200 py-3 z-50 animate-in fade-in duration-150 max-w-[calc(100vw-1.5rem)]">
                   <div className="flex items-center justify-between px-4 pb-2 border-b border-slate-100">
                     <div className="flex items-center gap-2">
                       <Radio className="w-4 h-4 text-red-600 animate-pulse shrink-0" />
@@ -543,25 +654,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             )}
           </div>
 
-          {/* NDMA Operations Badge -> Link to Mission Control */}
-          <Link
-            to="/mission-control"
-            className="hidden sm:flex items-center gap-1.5 pl-1.5 sm:pl-2 border-l border-slate-200 shrink-0 hover:opacity-85 transition-opacity"
-            title="Open NDMA Operations — Disaster Management Mission Control Center"
-          >
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-orange-100 text-orange-700 flex items-center justify-center font-bold text-xs border border-orange-200 shrink-0 shadow-2xs">
-              <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            </div>
-            <div className="hidden 2xl:block text-left min-w-0">
-              <p className="text-xs font-bold text-slate-800 leading-none truncate">{t('app.ndmaOperations', 'NDMA Operations')}</p>
-              <p className="text-[10px] text-slate-400 mt-0.5 truncate">{t('app.controlCenter', 'Mission Control')}</p>
-            </div>
-            <div className="hidden lg:block 2xl:hidden text-left min-w-0">
-              <p className="text-xs font-bold text-slate-800 leading-none">Mission Control</p>
-            </div>
-          </Link>
-
-          {/* Persona / RBAC Switcher for Judges */}
+          {/* 6. Persona / RBAC Switcher for Judges (Always Visible) */}
           <button
             onClick={() => setShowRoleModal(true)}
             className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 transition-colors shrink-0"

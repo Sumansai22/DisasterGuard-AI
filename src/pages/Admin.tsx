@@ -26,6 +26,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useFeedback } from '../context/FeedbackContext';
 import { Link } from 'react-router-dom';
 import { UserRole, UserProfile } from '../types/auth';
 import { DamageAssessmentRecord } from '../types/damageAssessment';
@@ -34,6 +35,8 @@ import { StationManager } from '../components/admin/StationManager';
 import { ThresholdConfig } from '../components/admin/ThresholdConfig';
 import { SystemStatusIndicator } from '../components/common/SystemStatus';
 import { RoleSwitcherModal } from '../components/common/RoleSwitcherModal';
+import { SortOption, SortDirection, sortData } from '../types/sorting';
+import { SortingToolbar } from '../components/common/SortingToolbar';
 
 type AdminTab =
   | 'overview'
@@ -46,19 +49,96 @@ type AdminTab =
   | 'reports'
   | 'config';
 
+const ROLE_RANK: Record<string, number> = {
+  ADMIN: 4,
+  INSPECTOR: 3,
+  OPERATOR: 2,
+  VIEWER: 1,
+};
+
+const USER_SORT_OPTIONS: SortOption<UserProfile>[] = [
+  {
+    key: 'name',
+    label: 'User Name',
+    directionLabels: { asc: 'Name A–Z', desc: 'Name Z–A' },
+    getValue: (u) => u.name,
+    defaultDirection: 'asc',
+  },
+  {
+    key: 'role',
+    label: 'Access Role',
+    directionLabels: { asc: 'Viewer first', desc: 'Admin first' },
+    getValue: (u) => ROLE_RANK[u.role] ?? 0,
+    defaultDirection: 'desc',
+  },
+  {
+    key: 'status',
+    label: 'Account Status',
+    directionLabels: { asc: 'Inactive first', desc: 'Active first' },
+    getValue: (u) => (u.status === 'ACTIVE' ? 1 : 0),
+    defaultDirection: 'desc',
+  },
+  {
+    key: 'agency',
+    label: 'Agency / Department',
+    directionLabels: { asc: 'Agency A–Z', desc: 'Agency Z–A' },
+    getValue: (u) => u.agency,
+    defaultDirection: 'asc',
+  },
+];
+
+const ADMIN_ASSESSMENT_SORT_OPTIONS: SortOption<DamageAssessmentRecord>[] = [
+  {
+    key: 'score',
+    label: 'Priority Score',
+    directionLabels: { asc: 'Lowest Score first', desc: 'Highest Score first' },
+    getValue: (a) => a.scores?.compositePriorityScore ?? 0,
+    defaultDirection: 'desc',
+  },
+  {
+    key: 'date',
+    label: 'Last Updated',
+    directionLabels: { asc: 'Oldest first', desc: 'Newest first' },
+    getValue: (a) => a.updatedAt,
+    defaultDirection: 'desc',
+  },
+  {
+    key: 'location',
+    label: 'Location Name',
+    directionLabels: { asc: 'Location A–Z', desc: 'Location Z–A' },
+    getValue: (a) => a.locationName,
+    defaultDirection: 'asc',
+  },
+  {
+    key: 'damage',
+    label: 'Damage Grade',
+    directionLabels: { asc: 'Lowest Damage first', desc: 'Destroyed first' },
+    getValue: (a) => a.estimatedDamageCategory,
+    defaultDirection: 'desc',
+  },
+];
+
 export const AdminPage: React.FC = () => {
   const { currentUser, allUsers, addUser, toggleUserStatus, updateUser } = useAuth();
+  const { showSuccess, showInfo } = useFeedback();
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
   const [assessments, setAssessments] = useState<DamageAssessmentRecord[]>([]);
   const [showRoleModal, setShowRoleModal] = useState<boolean>(false);
 
   // User management state
   const [userSearch, setUserSearch] = useState('');
+  const [userSortKey, setUserSortKey] = useState<string>('name');
+  const [userSortDirection, setUserSortDirection] = useState<SortDirection>('asc');
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [newUserName, setNewUserName] = useState('');
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserRole, setNewUserRole] = useState<UserRole>('INSPECTOR');
   const [newUserAgency, setNewUserAgency] = useState('State Disaster Response Force');
+
+  // Assessment management sorting state
+  const [assessmentSortKey, setAssessmentSortKey] = useState<string>('score');
+  const [assessmentSortDirection, setAssessmentSortDirection] = useState<SortDirection>('desc');
+  const [assessmentSearch, setAssessmentSearch] = useState('');
 
   useEffect(() => {
     setAssessments(damageAssessmentService.getAllAssessments());
@@ -110,6 +190,28 @@ export const AdminPage: React.FC = () => {
         u.role.toLowerCase().includes(userSearch.toLowerCase()))
   );
 
+  const currentUserSortOption =
+    USER_SORT_OPTIONS.find((o) => o.key === userSortKey) || USER_SORT_OPTIONS[0];
+  const sortedUsers = sortData(filteredUsers, currentUserSortOption, userSortDirection);
+
+  // Filter & sort assessments
+  const filteredAssessments = safeAssessments.filter(
+    (a) =>
+      a &&
+      (a.title.toLowerCase().includes(assessmentSearch.toLowerCase()) ||
+        a.locationName.toLowerCase().includes(assessmentSearch.toLowerCase()) ||
+        a.id.toLowerCase().includes(assessmentSearch.toLowerCase()))
+  );
+
+  const currentAssessmentSortOption =
+    ADMIN_ASSESSMENT_SORT_OPTIONS.find((o) => o.key === assessmentSortKey) ||
+    ADMIN_ASSESSMENT_SORT_OPTIONS[0];
+  const sortedAssessments = sortData(
+    filteredAssessments,
+    currentAssessmentSortOption,
+    assessmentSortDirection
+  );
+
   // Export assessments to CSV
   const handleExportAssessmentsCsv = () => {
     const headers = [
@@ -128,7 +230,7 @@ export const AdminPage: React.FC = () => {
       'Last Updated',
     ];
 
-    const rows = assessments.map((a) => [
+    const rows = sortedAssessments.map((a) => [
       a.id,
       `"${a.title.replace(/"/g, '""')}"`,
       `"${a.disasterEvent.replace(/"/g, '""')}"`,
@@ -151,6 +253,7 @@ export const AdminPage: React.FC = () => {
     link.href = url;
     link.download = `DisasterGuard_PS53_Assessments_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
+    showSuccess('Report downloaded successfully.');
   };
 
   const handleCreateUser = (e: React.FormEvent) => {
@@ -166,9 +269,17 @@ export const AdminPage: React.FC = () => {
       badgeId: `AGY-${newUserRole.substring(0, 3)}-${Math.floor(100 + Math.random() * 900)}`,
     });
 
+    const createdName = newUserName.trim();
     setNewUserName('');
     setNewUserEmail('');
     setShowAddUserModal(false);
+    showSuccess(`User account for ${createdName} created successfully.`);
+  };
+
+  const handleToggleUserStatus = (id: string, name: string, currentStatus: string) => {
+    toggleUserStatus(id);
+    const updatedStatus = currentStatus === 'ACTIVE' ? 'DISABLED' : 'ACTIVE';
+    showSuccess(`User ${name} status updated to ${updatedStatus}.`);
   };
 
   return (
@@ -332,19 +443,9 @@ export const AdminPage: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-2">
-              <div className="relative">
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Search user or role..."
-                  value={userSearch}
-                  onChange={(e) => setUserSearch(e.target.value)}
-                  className="pl-8 pr-3 py-1.5 border border-slate-200 rounded-lg text-xs"
-                />
-              </div>
               <button
                 onClick={() => setShowAddUserModal(true)}
-                className="px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs flex items-center gap-1 cursor-pointer"
+                className="px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs flex items-center gap-1 cursor-pointer shadow-xs"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Add User</span>
@@ -352,10 +453,33 @@ export const AdminPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Sorting Toolbar for Users */}
+          <SortingToolbar
+            sortOptions={USER_SORT_OPTIONS}
+            activeSortKey={userSortKey}
+            activeDirection={userSortDirection}
+            onSortChange={(key, dir) => {
+              setUserSortKey(key);
+              setUserSortDirection(dir);
+            }}
+            defaultSortKey="name"
+            defaultDirection="asc"
+            searchQuery={userSearch}
+            onSearchChange={setUserSearch}
+            searchPlaceholder="Search user name, email, agency, role..."
+            totalCount={safeUsers.length}
+            filteredCount={sortedUsers.length}
+            onReset={() => {
+              setUserSearch('');
+              setUserSortKey('name');
+              setUserSortDirection('asc');
+            }}
+          />
+
+          <div className="overflow-x-auto border border-slate-200 rounded-xl">
             <table className="w-full text-left border-collapse min-w-[650px]">
               <thead>
-                <tr className="bg-slate-100 text-[10px] uppercase font-bold text-slate-500 border-b border-slate-200">
+                <tr className="bg-slate-100/80 text-[10px] uppercase font-bold text-slate-500 border-b border-slate-200">
                   <th className="py-2.5 px-3">User & Badge</th>
                   <th className="py-2.5 px-3">Role</th>
                   <th className="py-2.5 px-3">Agency / Department</th>
@@ -364,49 +488,57 @@ export const AdminPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredUsers.map((u) => (
-                  <tr key={u.id} className="hover:bg-slate-50 text-xs">
-                    <td className="py-3 px-3">
-                      <div className="font-bold text-slate-900">{u.name}</div>
-                      <div className="text-[10px] font-mono text-slate-400">{u.email} • {u.badgeId || u.id}</div>
-                    </td>
-                    <td className="py-3 px-3">
-                      <span
-                        className={`inline-block px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
-                          u.role === 'ADMIN'
-                            ? 'bg-purple-100 text-purple-800'
-                            : u.role === 'INSPECTOR'
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : u.role === 'OPERATOR'
-                            ? 'bg-orange-100 text-orange-800'
-                            : 'bg-blue-100 text-blue-800'
-                        }`}
-                      >
-                        {u.role}
-                      </span>
-                    </td>
-                    <td className="py-3 px-3 text-slate-700">{u.agency}</td>
-                    <td className="py-3 px-3">
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          u.status === 'ACTIVE'
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            : 'bg-red-50 text-red-700 border border-red-200'
-                        }`}
-                      >
-                        {u.status}
-                      </span>
-                    </td>
-                    <td className="py-3 px-3 text-right">
-                      <button
-                        onClick={() => toggleUserStatus(u.id)}
-                        className="px-2.5 py-1 rounded border border-slate-200 hover:bg-slate-100 text-[11px] font-medium"
-                      >
-                        {u.status === 'ACTIVE' ? 'Disable' : 'Activate'}
-                      </button>
+                {sortedUsers.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-slate-400">
+                      No matching user accounts found.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  sortedUsers.map((u) => (
+                    <tr key={u.id} className="hover:bg-slate-50 text-xs transition-colors">
+                      <td className="py-3 px-3">
+                        <div className="font-bold text-slate-900">{u.name}</div>
+                        <div className="text-[10px] font-mono text-slate-400">{u.email} • {u.badgeId || u.id}</div>
+                      </td>
+                      <td className="py-3 px-3">
+                        <span
+                          className={`inline-block px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                            u.role === 'ADMIN'
+                              ? 'bg-purple-100 text-purple-800'
+                              : u.role === 'INSPECTOR'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : u.role === 'OPERATOR'
+                              ? 'bg-orange-100 text-orange-800'
+                              : 'bg-blue-100 text-blue-800'
+                          }`}
+                        >
+                          {u.role}
+                        </span>
+                      </td>
+                      <td className="py-3 px-3 text-slate-700">{u.agency}</td>
+                      <td className="py-3 px-3">
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            u.status === 'ACTIVE'
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : 'bg-red-50 text-red-700 border border-red-200'
+                          }`}
+                        >
+                          {u.status}
+                        </span>
+                      </td>
+                      <td className="py-3 px-3 text-right">
+                        <button
+                          onClick={() => handleToggleUserStatus(u.id, u.name, u.status)}
+                          className="px-2.5 py-1 rounded border border-slate-200 hover:bg-slate-100 text-[11px] font-medium cursor-pointer transition-colors"
+                        >
+                          {u.status === 'ACTIVE' ? 'Disable' : 'Activate'}
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -426,14 +558,14 @@ export const AdminPage: React.FC = () => {
             <div className="flex items-center gap-2">
               <button
                 onClick={handleExportAssessmentsCsv}
-                className="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-bold flex items-center gap-1.5"
+                className="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>Export CSV</span>
               </button>
               <Link
                 to="/damage-assessment"
-                className="px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold flex items-center gap-1"
+                className="px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold flex items-center gap-1 cursor-pointer shadow-2xs"
               >
                 <span>Open Workspace</span>
                 <ExternalLink className="w-3 h-3" />
@@ -441,43 +573,72 @@ export const AdminPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="divide-y divide-slate-100">
-            {assessments.map((a) => (
-              <div key={a.id} className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-slate-900">{a.title}</span>
-                    <span className="font-mono text-[10px] text-slate-400">({a.id})</span>
-                    <span className="px-1.5 py-0.2 rounded font-mono text-[9px] bg-red-100 text-red-800 font-bold">
-                      {a.priorityTier.replace('_', ' ')}
-                    </span>
-                  </div>
-                  <div className="text-[11px] text-slate-600">
-                    {a.locationName} • Damage: <strong>{a.estimatedDamageCategory}</strong> • Score: <strong>{a.scores.compositePriorityScore}/100</strong>
-                  </div>
-                  <div className="text-[10px] text-slate-500 italic">
-                    "{a.priorityRationale}"
-                  </div>
-                </div>
+          {/* Sorting Toolbar for Assessments */}
+          <SortingToolbar
+            sortOptions={ADMIN_ASSESSMENT_SORT_OPTIONS}
+            activeSortKey={assessmentSortKey}
+            activeDirection={assessmentSortDirection}
+            onSortChange={(key, dir) => {
+              setAssessmentSortKey(key);
+              setAssessmentSortDirection(dir);
+            }}
+            defaultSortKey="score"
+            defaultDirection="desc"
+            searchQuery={assessmentSearch}
+            onSearchChange={setAssessmentSearch}
+            searchPlaceholder="Search assessment title, location, ID..."
+            totalCount={safeAssessments.length}
+            filteredCount={sortedAssessments.length}
+            onReset={() => {
+              setAssessmentSearch('');
+              setAssessmentSortKey('score');
+              setAssessmentSortDirection('desc');
+            }}
+          />
 
-                <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                    a.verificationStatus === 'VERIFIED_CONFIRMED'
-                      ? 'bg-emerald-100 text-emerald-800'
-                      : 'bg-amber-100 text-amber-800'
-                  }`}>
-                    {a.verificationStatus}
-                  </span>
-                  <Link
-                    to="/damage-assessment"
-                    className="p-1 rounded hover:bg-slate-100 text-slate-600"
-                    title="Inspect in workspace"
-                  >
-                    <Eye className="w-4 h-4" />
-                  </Link>
-                </div>
+          <div className="divide-y divide-slate-100 max-h-[500px] overflow-y-auto pr-1">
+            {sortedAssessments.length === 0 ? (
+              <div className="py-8 text-center text-slate-400">
+                No matching damage assessments found.
               </div>
-            ))}
+            ) : (
+              sortedAssessments.map((a) => (
+                <div key={a.id} className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50/80 px-2 rounded-lg transition-colors">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-slate-900">{a.title}</span>
+                      <span className="font-mono text-[10px] text-slate-400">({a.id})</span>
+                      <span className="px-1.5 py-0.2 rounded font-mono text-[9px] bg-red-100 text-red-800 font-bold">
+                        {a.priorityTier.replace('_', ' ')}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-slate-600">
+                      {a.locationName} • Damage: <strong>{a.estimatedDamageCategory}</strong> • Score: <strong>{a.scores.compositePriorityScore}/100</strong>
+                    </div>
+                    <div className="text-[10px] text-slate-500 italic">
+                      "{a.priorityRationale}"
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                      a.verificationStatus === 'VERIFIED_CONFIRMED'
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : 'bg-amber-100 text-amber-800'
+                    }`}>
+                      {a.verificationStatus}
+                    </span>
+                    <Link
+                      to="/damage-assessment"
+                      className="p-1 rounded hover:bg-slate-100 text-slate-600"
+                      title="Inspect in workspace"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </Link>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       )}
