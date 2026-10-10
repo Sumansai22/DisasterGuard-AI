@@ -160,66 +160,86 @@ export const DashboardPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Page Header with exact Product Identity */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4 pb-2 border-b border-slate-200">
-        <div className="min-w-0">
-          <div className="flex items-center gap-1.5 sm:gap-2 mb-1 flex-wrap">
-            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-orange-100 text-orange-800 border border-orange-200 shrink-0">
-              {t('app.ndmaDss')}
+      {/* Dashboard Hero Header: Balanced Two-Column Responsive Layout */}
+      <section className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)] xl:grid-cols-[minmax(0,1.25fr)_minmax(360px,0.75fr)] items-center gap-4 lg:gap-6 pb-4 border-b border-slate-200">
+        {/* Left Column — Project Introduction */}
+        <div className="min-w-0 flex flex-col justify-center">
+          {/* Badges */}
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
+            <span className="px-2.5 py-0.5 rounded text-[11px] font-mono font-bold bg-orange-100 text-orange-800 border border-orange-200 tracking-wide shrink-0">
+              {t('app.ndmaDss', 'NDMA DSS')}
             </span>
-            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-100 text-blue-800 border border-blue-200 shrink-0">
-              {t('app.multiHazard')}
+            <span className="px-2.5 py-0.5 rounded text-[11px] font-mono font-bold bg-blue-100 text-blue-800 border border-blue-200 tracking-wide shrink-0">
+              {t('app.multiHazard', 'MULTI-HAZARD')}
             </span>
-            <h1 className="text-lg sm:text-xl md:text-2xl font-extrabold text-slate-900 tracking-tight break-words">
-              {t('app.title')} — {t('app.subtitle')}
-            </h1>
           </div>
-          <p className="text-xs md:text-sm text-slate-500 font-medium">
-            {t('app.headerSubtitle')}
+
+          {/* Main Heading — Natural word wrapping, bold and prominent */}
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight leading-snug sm:leading-tight">
+            {t('app.title', 'DisasterGuard AI')} — {t('app.subtitle', 'Multi-Hazard Disaster Management & Early Warning System')}
+          </h1>
+
+          {/* Subtitle — Readable, comfortable line length */}
+          <p className="mt-2 text-xs sm:text-sm md:text-base text-slate-600 font-medium leading-relaxed max-w-2xl">
+            {t('app.headerSubtitle', 'AI-Powered Multi-Hazard Disaster Risk, Warning & Response Platform')}
           </p>
         </div>
 
-        {/* Action Buttons Responsive Grid */}
-        <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-2.5 w-full lg:w-auto shrink-0 flex-wrap">
-          <DemoTourButton variant="hero" />
-          <Link
-            to="/damage-assessment"
-            className="px-3 py-2 bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-600 hover:to-indigo-600 text-white rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-[0.98] border border-purple-500/40"
-            title="Open PS-53 Disaster Damage Assessment and Inspection Prioritization Workspace"
-          >
-            <Building2 className="w-3.5 h-3.5 text-purple-200 shrink-0" />
-            <span className="truncate">Damage Prioritization (PS-53)</span>
-          </Link>
-          <button
-            onClick={() => setIsSimulatorOpen(true)}
-            className="px-3 py-2 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-[0.98] cursor-pointer"
-          >
-            <Activity className="w-3.5 h-3.5 animate-pulse shrink-0" />
-            <span className="truncate">⚡ {t('dashboard.scenarioSimulator')}</span>
-          </button>
-          <Link
-            to="/drone-rescue"
-            className="px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border border-slate-700 shadow-sm transition-all active:scale-[0.98]"
-          >
-            <Crosshair className="w-3.5 h-3.5 text-orange-400 shrink-0" />
-            <span className="truncate">{t('nav.droneRescue')}</span>
-          </Link>
-          <Link
-            to="/evacuation"
-            className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-[0.98]"
-          >
-            <Navigation className="w-3.5 h-3.5 shrink-0" />
-            <span className="truncate">{t('nav.evacuation')}</span>
-          </Link>
-          <Link
-            to="/prediction"
-            className="px-3 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-[0.98]"
-          >
-            <BrainCircuit className="w-3.5 h-3.5 shrink-0" />
-            <span className="truncate">AI Predictor</span>
-          </Link>
+        {/* Right Column — Primary Actions */}
+        <div className="flex flex-col gap-2.5 w-full justify-self-stretch lg:justify-self-end min-w-0">
+          {/* Top Row: Start Project Demo (prominent) + Damage Prioritization (PS-53) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-2 sm:gap-2.5">
+            <DemoTourButton
+              variant="hero"
+              className="w-full justify-center text-center shadow-md shadow-orange-600/25"
+            />
+            <Link
+              to="/damage-assessment"
+              className="px-3.5 py-2.5 bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-600 hover:to-indigo-600 text-white rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 shadow-md shadow-purple-900/20 hover:shadow-purple-900/30 transition-all active:scale-[0.98] border border-purple-500/40 text-center"
+              title="Open PS-53 Disaster Damage Assessment and Inspection Prioritization Workspace"
+            >
+              <Building2 className="w-4 h-4 text-purple-200 shrink-0" />
+              <span className="whitespace-nowrap">Damage Prioritization (PS-53)</span>
+            </Link>
+          </div>
+
+          {/* Secondary Row: 4 Operational Action Buttons */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4 gap-2">
+            <button
+              onClick={() => setIsSimulatorOpen(true)}
+              className="px-3 py-2 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-all active:scale-[0.98] cursor-pointer"
+              title="Launch Dynamic Multi-Hazard Scenario Simulator"
+            >
+              <Activity className="w-3.5 h-3.5 animate-pulse shrink-0" />
+              <span className="truncate">⚡ Scenario Simulator</span>
+            </button>
+            <Link
+              to="/drone-rescue"
+              className="px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border border-slate-700 shadow-xs transition-all active:scale-[0.98]"
+              title="Open Aerial Drone Reconnaissance & Thermal Rescue Feed"
+            >
+              <Crosshair className="w-3.5 h-3.5 text-orange-400 shrink-0" />
+              <span className="truncate">{t('nav.droneRescue', 'Drone & Rescue')}</span>
+            </Link>
+            <Link
+              to="/evacuation"
+              className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-all active:scale-[0.98]"
+              title="View Safe Shelters & Intelligent Evacuation Routing"
+            >
+              <Navigation className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">Evacuation Routes</span>
+            </Link>
+            <Link
+              to="/prediction"
+              className="px-3 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-all active:scale-[0.98]"
+              title="Run AI Disaster Risk Prediction Engine"
+            >
+              <BrainCircuit className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">AI Predictor</span>
+            </Link>
+          </div>
         </div>
-      </div>
+      </section>
 
       {/* Scenario Simulator Modal */}
       <ScenarioSimulatorModal

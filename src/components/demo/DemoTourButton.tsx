@@ -17,14 +17,14 @@ export const DemoTourButton: React.FC<DemoTourButtonProps> = ({
     return (
       <button
         onClick={() => openDemoTour(0)}
-        className={`group relative inline-flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm text-white bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 hover:from-orange-500 hover:to-amber-500 shadow-lg shadow-orange-600/30 hover:shadow-orange-600/50 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 border border-orange-400/40 cursor-pointer overflow-hidden ${className}`}
+        className={`group relative inline-flex items-center justify-center gap-2 px-3 py-2 sm:px-5 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm text-white bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 hover:from-orange-500 hover:to-amber-500 shadow-lg shadow-orange-600/30 hover:shadow-orange-600/50 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 border border-orange-400/40 cursor-pointer overflow-hidden ${className}`}
         title="Launch Interactive Hackathon Jury Demo Walkthrough"
       >
         <span className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 pointer-events-none" />
         <span className="w-2 h-2 rounded-full bg-white animate-ping shrink-0" />
         <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white fill-current shrink-0" />
         <span className="tracking-wide uppercase font-extrabold whitespace-nowrap">
-          ▶ Start Project Demo
+          Start Project Demo
         </span>
       </button>
     );
